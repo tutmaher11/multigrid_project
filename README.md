@@ -6,3 +6,5 @@ James Folberth, Nathan Heavner, Rachel Tutmaher
 
 We're trying to build an image segmentation algorithm based on some of the ideas from algebraic multigrid (AMG).
 
+Some more text here.
+

@@ -1,4 +1,6 @@
-
+*.txt*
 *.o
-*.out*
+*.tikz*
+*.out
 
+cpp/test

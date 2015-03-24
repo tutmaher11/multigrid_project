@@ -35,7 +35,7 @@ class matrix_crs {
 
       vector<unsigned> row_ptr;
       vector<unsigned> col_ind;
-      vector<T> val;
+      vector<T> val; // TODO switch to valarray?
       size_t m;          // number of rows
       size_t n;          // number of cols
 
@@ -58,6 +58,7 @@ class matrix_crs {
 
       void clean(void);
       void deepclean(void); // calls COO clean; hopefully shouldn't use
+      void sort_inds(void); // sort column indexes (mat-mat calls this)
 
       ////////////////
       // Operations //
@@ -70,6 +71,9 @@ class matrix_crs {
       // matrix add/sub
       matrix_crs<T>& operator+=(const matrix_crs<T>& B);
       matrix_crs<T>& operator-=(const matrix_crs<T>& B);
+
+      // matrix transpose
+      matrix_crs<T>& transpose(void);
 
 
       /////////////////////
@@ -114,6 +118,10 @@ matrix_crs<T> operator-(const matrix_crs<T>& lhs, const matrix_crs<T>& rhs);
 template<typename T>
 valarray<T> operator*(const matrix_crs<T>& A, const valarray<T>& x);
 
+
+// matrix-matrix product
+template<typename T>
+matrix_crs<T> operator*(const matrix_crs<T>& A, const matrix_crs<T>& B);
 
 
 //////////////////////////

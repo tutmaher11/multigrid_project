@@ -334,6 +334,19 @@ void test_crs_eye(void) {
    // }}}
 }
 
+void test_crs_transpose(void) {
+   // {{{
+   matrix_crs<double> A = rand_crs<double>(5,3);
+
+   cout << "A = " << endl;
+   A.print_full();
+
+   cout << "A^T = " << endl;
+   //A.transpose().print_full();
+   
+   // }}}
+}
+
 void test_crs_scalar(void) {
    // {{{
    matrix_crs<double> A = rand_crs<double>(8,5);
@@ -432,6 +445,24 @@ void test_crs_matvec(void) {
    // }}}
 }
 
+void test_crs_matmat(void) {
+   // {{{
+   unsigned p = 5, q = 6, r = 3;
+   matrix_crs<double> A = rand_crs<double>(p,q,10);
+   matrix_crs<double> B = rand_crs<double>(q,r,10);
+
+   cout << "A = " << endl;
+   A.print_full();
+
+   cout << "B = " << endl;
+   B.print_full();
+   
+   matrix_crs<double> C = A*B;
+   cout << "C = " << endl;
+   C.print_full();
+   
+   // }}}
+}
 
 ////////////////////
 // Model problems //
@@ -1158,10 +1189,12 @@ int main() {
    // CRS
    //test_crs_matrix();
    //test_crs_eye();
+   //test_crs_transpose();
    //test_crs_scalar();
    //test_crs_add();
    //test_crs_kron();
    //test_crs_matvec();
+   test_crs_matmat();
    
    // Model problems
    //test_model_problems();
@@ -1175,7 +1208,7 @@ int main() {
    //test_mg_1d_intergrid_operators();
    //test_mg_2d_intergrid_operators();
    
-   test_mg_1d_vcycle();
+   //test_mg_1d_vcycle();
    //test_mg_2d_vcycle();
 
    //test_mg_1d_fmg();

@@ -1,3 +1,5 @@
+// http://docs.opencv.org/doc/tutorials/introduction/linux_gcc_cmake/linux_gcc_cmake.html#linux-gcc-usage
+
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
 
@@ -12,7 +14,9 @@ int main(int argc, char** argv )
     }
 
     Mat image;
-    image = imread( argv[1], 1 );
+    // 0 - blend color channels to form grayscale image
+    // 1 - load color channels
+    image = imread( argv[1], 0 );
 
     if ( !image.data )
     {

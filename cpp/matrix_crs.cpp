@@ -134,7 +134,47 @@ inline void matrix_crs<T>::deepclean(void) {
    *this = (this->to_coo()).to_crs();
 }
 
+// Sort the column indexes for each row
+// Used after Gustavson's algorithm for sparse mat-mat
+template<typename T>
+void matrix_crs<T>::sort_inds(void) {
 
+   struct sort_pair {
+      unsigned col;
+      T v;
+   };
+
+   vector<sort_pair> pair(n); // worst case is n entries in a row
+
+   unsigned ind = 0;
+   for (unsigned i=0; i < m; ++i) {
+    
+      // Accumulate pairs of (column index,val) for row i
+      ind = 0;
+      pair.resize(n); // this shouldn't cause any reallocation
+      for (unsigned j=row_ptr[i]; j < row_ptr[i+1]; ++j) {
+         pair[ind].col = col_ind[j];
+         pair[ind].v   = val[j];
+         ind += 1; 
+      }
+      if ( ind > 0 ) pair.resize(ind);
+      else continue; // nothing to sort!
+
+      // Sort the pair
+      sort(pair.begin(), pair.end(),
+            [&] (const sort_pair& lhs, const sort_pair& rhs) -> bool {
+            return (lhs.col < rhs.col);
+         });
+
+      //  Place the sorted pairs back in the matrix
+      ind = 0;
+      for (unsigned j=row_ptr[i]; j < row_ptr[i+1]; ++j) {
+         col_ind[j] = pair[ind].col;
+         val[j]     = pair[ind].v;
+         ind += 1; 
+      }
+   }
+}
 
 ////////////////
 // Operations //
@@ -310,6 +350,88 @@ valarray<T> operator*(const matrix_crs<T>& A, const valarray<T>& x) {
 }
 
 
+// matrix-matrix product
+// See "Two Fast Algorithms for Sparse Matrices: Multiplication
+//      and Permuted Transposition" - Gustavson, 1978 
+template<typename T>
+matrix_crs<T> operator*(const matrix_crs<T>& A, const matrix_crs<T>& B) {
+
+   unsigned Am = A.m, An = A.n, Bm = B.m, Bn = B.n;
+
+   if ( An != Bm ) {
+      cerr << "error: matrix_crs.cpp:operator*: matrix-matrix product "
+           << "dimension mismatch." << endl;
+      exit(-1);
+   }
+
+   vector<unsigned> xb(Bn,-1);
+   vector<T> x(Bn,0.);
+
+   // guess size for C variables
+   unsigned Cnnz = MIN(Am*Bn, A.val.size() + B.val.size());
+
+   vector<unsigned> Crow_ptr, Ccol_ind;
+   vector<T> Cval;
+   Crow_ptr.resize(Am+1);
+   Ccol_ind.resize(Cnnz);
+   Cval.resize(Cnnz);
+  
+   // Do the Gustavson algorithm
+   unsigned ip = 0;
+
+   for (unsigned i=0; i < Am; ++i) {
+      Crow_ptr[i] = ip;
+
+      // check if we need more storage
+      if ( ip > Cnnz - Bm) {
+         Ccol_ind.resize(Cnnz+MIN(Cnnz,Am));
+         Cval.resize(Cnnz+MIN(Cnnz,Am));
+         Cnnz = Cval.size();
+      }
+     
+      // Do the work of mat-mat
+      for (unsigned jp = A.row_ptr[i]; jp < A.row_ptr[i+1]; ++jp) {
+         unsigned j = A.col_ind[jp];
+         T nzA = A.val[jp];
+
+         for (unsigned kp = B.row_ptr[j]; kp < B.row_ptr[j+1]; ++kp) {
+            unsigned k = B.col_ind[kp];
+            T nzC = nzA * B.val[kp];
+
+
+            if ( xb[k] != i ) {
+               Ccol_ind[ip] = k;
+               ip += 1;
+               xb[k] = i;
+               x[k] = nzC;
+            }
+
+            else {
+               x[k] += nzC;
+            }
+         }
+      }
+
+      // copy result over to Cval
+      for (unsigned vp = Crow_ptr[i]; vp < ip; ++vp) {
+         Cval[vp] = x[Ccol_ind[vp]];
+      }
+ 
+   }
+   Crow_ptr[Am] = ip;
+
+   Ccol_ind.resize(*(Crow_ptr.end()-1));
+   Cval.resize(*(Crow_ptr.end()-1));
+
+   // C is not guaranteed to be sorted
+   matrix_crs<T> C(Crow_ptr, Ccol_ind, Cval, Am, Bn, 1); // Build CRS directly
+
+   C.sort_inds();
+
+   return C;
+}
+
+
 
 
 /////////////////////
@@ -461,4 +583,7 @@ template matrix_crs<double> operator-(const matrix_crs<double>&,
 
 template valarray<double> operator*(const matrix_crs<double>&,
                                       const valarray<double>&);
+
+template matrix_crs<double> operator*(const matrix_crs<double>&,
+                                      const matrix_crs<double>&);
 

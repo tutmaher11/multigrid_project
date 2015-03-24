@@ -37,8 +37,13 @@ using namespace std;
 #define _ELEMENT_ZERO_TOL_ 10e-16
 
 // misc
+#ifndef MIN
 #define MIN(a,b) (((a)<(b)) ? a : b)
+#endif
+
+#ifndef MAX
 #define MAX(a,b) (((a)<(b)) ? b : a)
+#endif
 
 #define _PI_ 3.14159265358979323846264338327950288419716
 

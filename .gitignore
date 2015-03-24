@@ -4,3 +4,5 @@
 *.out
 
 cpp/test
+cpp/display_image
+cpp/image_seg

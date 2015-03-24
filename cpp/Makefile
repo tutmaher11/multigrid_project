@@ -60,12 +60,19 @@ multigrid.o: matrix_crs.cpp utils.cpp classical_solvers.cpp multigrid.cpp multig
 	$(CPP) $(CPPFLAGS) $(LDLIBS) $(LDFLAGS) -c multigrid.cpp
 
 
+# Image Segmentation
+image_seg.o: $(COMMON_O) image_seg.cpp image_seg.hpp
+	$(CPP) $(CPPFLAGS) $(LDLIBS) $(LDFLAGS) -c image_seg.cpp
+
+image_seg: $(COMMON_O) image_seg.o
+	$(CPP) $(CPPFLAGS) -flto $(LDLIBS) $(OPENCVLIBS) $(LDFLAGS) $(COMMON_O) image_seg.o -o image_seg
+
 
 force:
 
 clean:
 	@rm -f *.o
-	@rm -f test display_image
+	@rm -f test display_image image_seg
 	@rm -f *.out # gprof
 
 cleandata:

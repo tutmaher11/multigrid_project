@@ -336,13 +336,17 @@ void test_crs_eye(void) {
 
 void test_crs_transpose(void) {
    // {{{
-   matrix_crs<double> A = rand_crs<double>(5,3);
+   matrix_crs<double> A = rand_crs_rand_size<double>();
+   //matrix_crs<double> A = rand_crs<double>(5,3);
 
    cout << "A = " << endl;
    A.print_full();
 
    cout << "A^T = " << endl;
-   //A.transpose().print_full();
+   //matrix_crs<double> At;
+   //transpose(At,A);
+   //At.print_full();
+   transpose(A).print_full();
    
    // }}}
 }
@@ -448,8 +452,8 @@ void test_crs_matvec(void) {
 void test_crs_matmat(void) {
    // {{{
    unsigned p = 5, q = 6, r = 3;
-   matrix_crs<double> A = rand_crs<double>(p,q,10);
-   matrix_crs<double> B = rand_crs<double>(q,r,10);
+   matrix_crs<double> A = rand_crs<double>(p,q);
+   matrix_crs<double> B = rand_crs<double>(q,r);
 
    cout << "A = " << endl;
    A.print_full();
@@ -1194,7 +1198,7 @@ int main() {
    //test_crs_add();
    //test_crs_kron();
    //test_crs_matvec();
-   test_crs_matmat();
+   //test_crs_matmat();
    
    // Model problems
    //test_model_problems();

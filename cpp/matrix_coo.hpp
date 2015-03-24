@@ -46,7 +46,7 @@ class matrix_coo {
       matrix_coo<T>(vector<unsigned>& init_row_ind,
                  vector<unsigned>& init_col_ind,
                  vector<T>& init_val,
-                 size_t init_m=0, size_t init_n=0);
+                 size_t init_m=0, size_t init_n=0, int sortflag=1);
 
       // copy, move, destruct
       matrix_coo<T>(const matrix_coo<T>& ) = default;
@@ -71,7 +71,7 @@ class matrix_coo {
       matrix_coo<T>& operator+=(const matrix_coo<T>& B);
       matrix_coo<T>& operator-=(const matrix_coo<T>& B);
 
-
+      
       /////////////////////
       // Type conversion //
       /////////////////////

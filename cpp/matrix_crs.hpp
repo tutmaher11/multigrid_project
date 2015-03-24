@@ -47,7 +47,8 @@ class matrix_crs {
       matrix_crs<T>(vector<unsigned>& init_row_ind,
                  vector<unsigned>& init_col_ind,
                  vector<T>& init_val,
-                 size_t init_m=0, size_t init_n=0, unsigned flag=0);
+                 size_t init_m=0, size_t init_n=0,
+                 int crsflag=0, int sortflag=1);
 
       // copy, move, destruct
       matrix_crs<T>(const matrix_crs<T>& ) = default;
@@ -71,9 +72,6 @@ class matrix_crs {
       // matrix add/sub
       matrix_crs<T>& operator+=(const matrix_crs<T>& B);
       matrix_crs<T>& operator-=(const matrix_crs<T>& B);
-
-      // matrix transpose
-      matrix_crs<T>& transpose(void);
 
 
       /////////////////////
@@ -105,6 +103,13 @@ matrix_crs<T> operator*(const T& lhs, const matrix_crs<T>& rhs);
 template<typename T>
 matrix_crs<T> operator/(const matrix_crs<T>& lhs, const T& rhs);
 
+
+// matrix transpose
+template<typename T>
+void transpose(matrix_crs<T>& dest, const matrix_crs<T>& src);
+
+template<typename T>
+matrix_crs<T> transpose(matrix_crs<T>& A);
 
 // matrix add/sub
 template<typename T>

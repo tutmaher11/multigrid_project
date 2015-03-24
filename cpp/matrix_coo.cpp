@@ -15,7 +15,7 @@ matrix_coo<T>::matrix_coo(
       vector<unsigned>& init_row_ind,
       vector<unsigned>& init_col_ind,
       vector<T>& init_val,
-      size_t init_m, size_t init_n) {
+      size_t init_m, size_t init_n, int sortflag) {
 
    row_ind = init_row_ind;
    col_ind = init_col_ind;
@@ -39,7 +39,9 @@ matrix_coo<T>::matrix_coo(
    assert(row_ind.size() == col_ind.size());
    assert(col_ind.size() == val.size());
 
-   this->clean();
+   if ( sortflag == 1 ) {
+      this->clean();
+   }
 }
 
 
@@ -439,12 +441,13 @@ matrix_coo<T> operator-(const matrix_coo<T>& lhs, const matrix_coo<T>& rhs) {
 }
 
 
+
 /////////////////////
 // Type conversion //
 /////////////////////
 template<typename T>
 matrix_crs<T> matrix_coo<T>::to_crs(void) {
-   return matrix_crs<T>(row_ind, col_ind, val, m, n);
+   return matrix_crs<T>(row_ind, col_ind, val, m, n, 0, 0);
 }
 
 

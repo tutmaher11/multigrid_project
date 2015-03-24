@@ -15,10 +15,10 @@ matrix_crs<T>::matrix_crs(
       vector<unsigned>& init_row_ind,
       vector<unsigned>& init_col_ind,
       vector<T>& init_val,
-      size_t init_m, size_t init_n, unsigned flag) {
+      size_t init_m, size_t init_n, int crsflag, int sortflag) {
 
    // if a (complete) CRS matrix is passed in, build it
-   if ( flag == 1 ) {
+   if ( crsflag == 1 ) {
       row_ptr = init_row_ind; // actually row pointers
       col_ind = init_col_ind;
       val = init_val;
@@ -33,7 +33,8 @@ matrix_crs<T>::matrix_crs(
 // Then we build the vector of row pointers, taking into account zero rows
 
    // Build COO matrix (which will sort indexes)
-   matrix_coo<T> coomat(init_row_ind, init_col_ind, init_val, init_m, init_n); 
+   matrix_coo<T> coomat(init_row_ind, init_col_ind, init_val, init_m, init_n,
+         sortflag); 
 
    if ( _DEBUG_ >= 2) {
       cout << "debug 2: CRS matrix construction" << endl;
@@ -326,6 +327,51 @@ matrix_crs<T> operator-(const matrix_crs<T>& lhs, const matrix_crs<T>& rhs) {
 }
 
 
+// matrix transposea
+// inspired by
+// http://www.cise.ufl.edu/research/sparse/CSparse/CSparse/Source/cs_transpose.c
+template<typename T>
+void transpose(matrix_crs<T>& dest, const matrix_crs<T>& src) {
+
+   dest.m = src.n;
+   dest.n = src.m;
+   dest.row_ptr.resize(src.n+1);
+   dest.col_ind.resize(src.col_ind.size());
+   dest.val.resize(src.val.size());
+
+   fill(dest.row_ptr.begin(), dest.row_ptr.end(), 0);
+   for (unsigned p = 0; p < src.val.size(); ++p) {
+      dest.row_ptr[src.col_ind[p]+1] += 1;
+   }
+
+   unsigned cumsum = dest.row_ptr[0];
+   for (unsigned i = 1; i < dest.row_ptr.size(); ++i) {
+      cumsum += dest.row_ptr[i];
+      dest.row_ptr[i] = cumsum;
+   }
+
+   vector<unsigned> w = dest.row_ptr; // copy
+  
+   unsigned q;
+   for (unsigned i = 0; i < src.m; ++i) {
+      for (unsigned p = src.row_ptr[i]; p < src.row_ptr[i+1]; ++p) {
+         q = w[src.col_ind[p]]++; // increment subtleties :)
+         dest.col_ind[q] = i;
+         dest.val[q] = src.val[p];
+      }
+   }
+}
+
+template<typename T>
+matrix_crs<T> transpose(matrix_crs<T>& A) {
+   
+   matrix_crs<T> At;
+   transpose(At,A);
+   return At;
+   //return matrix_crs<T>(At.row_ptr, At.col_ind, At.val, At.m, At.n, 1);
+}
+
+
 // matrix-vector product
 template<typename T>
 valarray<T> operator*(const matrix_crs<T>& A, const valarray<T>& x) {
@@ -447,7 +493,7 @@ matrix_coo<T> matrix_crs<T>::to_coo(void) {
            i);
    }
 
-   return matrix_coo<T>(new_row_ind, col_ind, val, m, n);
+   return matrix_coo<T>(new_row_ind, col_ind, val, m, n, 0);
 }
 
 template<typename T>
@@ -569,6 +615,9 @@ void matrix_crs<T>::print_full(void) {
 /////////
 template class matrix_crs<double>;
 template matrix_crs<double> eye_crs<double>(unsigned,unsigned);
+template void transpose<double>(matrix_crs<double>& dest,
+                                              const matrix_crs<double>& src);
+template matrix_crs<double> transpose<double>(matrix_crs<double>& A);
 template matrix_crs<double> kron<double>(const matrix_crs<double>&,
                                          const matrix_crs<double>&);
 

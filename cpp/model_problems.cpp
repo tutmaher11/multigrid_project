@@ -48,7 +48,7 @@ matrix_crs<T> model_problem_1d(unsigned L, T sigma) {
    cind[3*m-4] = m-2; cind[3*m-3] = m-1;
    val[3*m-4] = -1./h2; val[3*m-3] = 2./h2+sigma;
 
-   return matrix_crs<T>(rind, cind, val, m, n);
+   return matrix_crs<T>(rind, cind, val, m, n, 0, 0);
 }
 
 

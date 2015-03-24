@@ -9,6 +9,213 @@
 // Image Segmentation //
 ////////////////////////
 // {{{
+
+// First Level
+//////////////
+matrix_crs<double> build_A1(const valarray<double>& I,
+      const seg_params& params) {
+// {{{
+// Build A by rows, since we store in CRS
+// The ordering of I for a 5x5 image (e.g. square.png) is
+//
+// 0   1   2   3   4
+// 5   6   7   8   9
+// 10  11  12  13  14
+// 15  16  17  18  19
+// 20  21  22  23  24
+//
+
+   unsigned n = params.n;
+   double a = params.alpha;
+
+   vector<unsigned> row_ptr, col_ind;
+   vector<double> val;
+   row_ptr.resize(I.size()+1);
+   col_ind.reserve(4*2+4*(n-2)*3+(n-2)*(n-2)*4);
+   val.reserve(4*2+4*(n-2)*3+(n-2)*(n-2)*4);
+
+   if ( _DEBUG_ >= 2) {
+      cout << "debug 2: building A1 (nnz = " 
+           << 4*2+4*(n-2)*3+(n-2)*(n-2)*4 << ")" << endl;
+   }
+
+   row_ptr[0] = 0;
+   for (unsigned ind = 0; ind < I.size(); ++ind) {
+      row_ptr[ind+1] = row_ptr[ind];
+
+      if ( 0 <= ind && ind < n ) { // on top
+         if ( ind % n == 0 ) { // on left side
+            // we must have ind == 0, top-left
+            if ( _DEBUG_ >= 2) {
+               cout << "debug 2: ind = " << ind 
+                    << " top row, left side" << endl;
+            }
+
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind+1);
+            val.push_back(exp(-a*abs(I[ind]-I[ind+1])));
+
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind+n);
+            val.push_back(exp(-a*abs(I[ind]-I[ind+n])));
+         }
+
+         else if ( (ind + 1) % n == 0 ) { // on right side
+            // we must have ind == n-1, top-right
+            if ( _DEBUG_ >= 2) {
+               cout << "debug 2: ind = " << ind 
+                    << " top row, right side" << endl;
+            }
+ 
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind-1);
+            val.push_back(exp(-a*abs(I[ind]-I[ind-1])));
+
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind+n);
+            val.push_back(exp(-a*abs(I[ind]-I[ind+n])));
+         }
+
+         else { // in the middle
+            ++row_ptr[ind+1];
+            if ( _DEBUG_ >= 2) {
+               cout << "debug 2: ind = " << ind 
+                    << " top row, middle side" << endl;
+            }
+ 
+            col_ind.push_back(ind-1);
+            val.push_back(exp(-a*abs(I[ind]-I[ind-1])));
+
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind+1);
+            val.push_back(exp(-a*abs(I[ind]-I[ind+1])));
+
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind+n);
+            val.push_back(exp(-a*abs(I[ind]-I[ind+n])));
+         }
+      }
+
+      else if ( (n <= ind) && (ind < (n-1)*n) ) { // in the middle rows
+         if ( ind % n == 0 ) { // on left side
+            if ( _DEBUG_ >= 2) {
+               cout << "debug 2: ind = " << ind 
+                    << " middle row, left side" << endl;
+            }
+ 
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind-n);
+            val.push_back(exp(-a*abs(I[ind]-I[ind-n])));
+
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind+1);
+            val.push_back(exp(-a*abs(I[ind]-I[ind+1])));
+
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind+n);
+            val.push_back(exp(-a*abs(I[ind]-I[ind+n])));
+         }
+
+         else if ( (ind + 1) % n == 0 ) { // on right side
+            if ( _DEBUG_ >= 2) {
+               cout << "debug 2: ind = " << ind 
+                    << " middle row, right side" << endl;
+            }
+ 
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind-n);
+            val.push_back(exp(-a*abs(I[ind]-I[ind-n])));
+
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind-1);
+            val.push_back(exp(-a*abs(I[ind]-I[ind-1])));
+
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind+n);
+            val.push_back(exp(-a*abs(I[ind]-I[ind+n])));
+         }
+
+         else { // in the middle
+            if ( _DEBUG_ >= 2) {
+               cout << "debug 2: ind = " << ind 
+                    << " middle row, middle side" << endl;
+            }
+ 
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind-n);
+            val.push_back(exp(-a*abs(I[ind]-I[ind-n])));
+
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind-1);
+            val.push_back(exp(-a*abs(I[ind]-I[ind-1])));
+
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind+1);
+            val.push_back(exp(-a*abs(I[ind]-I[ind+1])));
+
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind+n);
+            val.push_back(exp(-a*abs(I[ind]-I[ind+n])));
+         }
+      }
+
+      else { // in bottom row
+         if ( ind % n == 0 ) { // on left side
+            if ( _DEBUG_ >= 2) {
+               cout << "debug 2: ind = " << ind 
+                    << " bottom row, left side" << endl;
+            }
+ 
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind-n);
+            val.push_back(exp(-a*abs(I[ind]-I[ind-n])));
+
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind+1);
+            val.push_back(exp(-a*abs(I[ind]-I[ind+1])));
+         }
+
+         else if ( (ind + 1) % n == 0 ) { // on right side
+            if ( _DEBUG_ >= 2) {
+               cout << "debug 2: ind = " << ind 
+                    << " bottom row, right side" << endl;
+            }
+ 
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind-n);
+            val.push_back(exp(-a*abs(I[ind]-I[ind-n])));
+
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind-1);
+            val.push_back(exp(-a*abs(I[ind]-I[ind-1])));
+         }
+
+         else { // in the middle
+            if ( _DEBUG_ >= 2) {
+               cout << "debug 2: ind = " << ind 
+                    << " bottom row, middle side" << endl;
+            }
+ 
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind-n);
+            val.push_back(exp(-a*abs(I[ind]-I[ind-n])));
+
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind-1);
+            val.push_back(exp(-a*abs(I[ind]-I[ind-1])));
+
+            ++row_ptr[ind+1];
+            col_ind.push_back(ind+1);
+            val.push_back(exp(-a*abs(I[ind]-I[ind+1])));
+         }
+      }
+   }
+
+   return matrix_crs<double>(row_ptr, col_ind, val, I.size(), I.size(), 1);
+// }}}
+}
+
+
 // }}}
 
 
@@ -18,15 +225,18 @@
 // {{{
 
 // main driver for image segmentation
-void image_seg(const string& img_filename, const seg_params& params) {
+void image_seg(const string& img_filename, seg_params& params) {
 
    cv::Mat image;
 
    image = load_image(img_filename);
 
-   valarray<double> I = image_to_intensity(image);
+   valarray<double> I = image_to_intensity(image, params);
    //print_vector(I);
 
+   matrix_crs<double> A1 = build_A1(I, params);
+   //A1.print_full();
+   //cout << A1 << endl;
 
 }
 
@@ -82,9 +292,13 @@ cv::Mat load_image(const string& img_filename) {
 // The intensity vector has values scaled from 0 to 1 (0->0, 255->1)
 // The entries of the vector are the entries of the image matrix sorted
 // row-wise
-valarray<double> image_to_intensity(cv::Mat img) {
+valarray<double> image_to_intensity(cv::Mat img, seg_params& params) {
 
    valarray<double> I(0., img.rows*img.cols);
+   
+   // Set the size of the image in the parameters class
+   // We'll use it later to build A on the first level
+   params.n = static_cast<unsigned>(img.rows);
 
    for (int i=0; i < img.rows; ++i) {
 

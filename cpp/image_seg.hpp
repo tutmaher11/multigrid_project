@@ -6,6 +6,7 @@
 #ifndef _IMAGE_SEG_HPP_
 #define _IMAGE_SEG_HPP_ 
 
+#include <cmath>
 #include <iostream>
 #include <iomanip>
 #include <valarray>
@@ -56,6 +57,8 @@ class image_level {
 // the levels
 class seg_params {
    public:
+      unsigned n;       // Size of image: n x n
+      
       double alpha;     // top-level intensity scaling factor
       double alpha_til; // coarse-level intensity rescaling factor
       double beta;      // coarse-level variance rescaling factor
@@ -89,6 +92,13 @@ class seg_params {
 
 };
 
+
+// First Level
+//////////////
+matrix_crs<double> build_A1(const valarray<double>& I,
+      const seg_params& params);
+
+
 // }}}
 
 
@@ -97,13 +107,12 @@ class seg_params {
 ///////////////////////
 // {{{
 
-void image_seg(const string& img_filename, const seg_params& params);
+void image_seg(const string& img_filename, seg_params& params);
 
 void image_seg(const string& img_filename);
 
 
 // }}}
-
 
 
 ///////////////////
@@ -113,7 +122,7 @@ void image_seg(const string& img_filename);
 
 cv::Mat load_image(const string& img_filename);
 
-valarray<double> image_to_intensity(cv::Mat img);
+valarray<double> image_to_intensity(cv::Mat img, seg_params& params);
 
 // }}}
 

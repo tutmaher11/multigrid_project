@@ -95,8 +95,22 @@ class seg_params {
 
 // First Level
 //////////////
+void build_first_level(const valarray<double>& I, const seg_params& params,
+      vector<image_level>::iterator it);
+
 matrix_crs<double> build_A1(const valarray<double>& I,
       const seg_params& params);
+
+
+// General Level
+////////////////
+// These might still be used by the first level, though
+void build_L(vector<image_level>::iterator it, 
+      const seg_params& params);
+
+void build_G(vector<image_level>::iterator it, 
+      const seg_params& params);
+
 
 
 // }}}

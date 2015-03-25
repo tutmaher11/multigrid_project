@@ -12,6 +12,32 @@
 
 // First Level
 //////////////
+void build_first_level(const valarray<double>& I, const seg_params& params,
+      vector<image_level>::iterator it) {
+
+   // connectivity
+   it->A = build_A1(I, params);
+
+   // variance (init to zeros)
+   it->S = zeros<double>(I.size(), I.size());
+ 
+   // weighted boundary length
+   build_L(it, params);
+
+   // area 
+   it->V = it->A;
+   fill(it->V.val.begin(), it->V.val.end(), 1.);
+
+   // boundary length
+   build_G(it, params);
+
+   // Build initial saliency vector
+   it->Gamma = diag<double>(it->L);
+   it->Gamma /= diag<double>(it->G);
+
+}
+
+
 matrix_crs<double> build_A1(const valarray<double>& I,
       const seg_params& params) {
 // {{{
@@ -215,6 +241,142 @@ matrix_crs<double> build_A1(const valarray<double>& I,
 // }}}
 }
 
+void build_L(vector<image_level>::iterator it, 
+      const seg_params& params) {
+// {{{
+//     {  -A_{ij}                  i != j
+// L = {
+//     {   \sum_{k\neq i} A_{ik}   i == j
+//
+// Equivalently,
+// 1) L \gets -A
+// 2) L_{ii} \gets -\sum_{k\neq i} L_{ik}
+//
+// Should be 
+//    L = -A; for i in 1:size(L,1); L[i,i] -= sum(L[i,:]); end
+// in julia.
+//
+
+   it->L = -1.*it->A;
+
+   for (unsigned i = 0; i < it->L.m; ++i) {
+      
+      // compute full row sum
+      double sum = 0.;
+      for (unsigned jp = it->L.row_ptr[i]; jp < it->L.row_ptr[i+1]; ++jp) {
+         sum += it->L.val[jp];
+      }
+
+      // Insert into matrix
+      for (unsigned jp = it->L.row_ptr[i]; jp < it->L.row_ptr[i+1]; ++jp) {
+         unsigned j = it->L.col_ind[jp];
+
+         if ( j < i && i != it->L.m-1 ) {
+            continue;
+         }
+
+         else if ( j == i ) {
+            // this spot already exists in the matrix,
+            // so we don't need to insert
+
+            it->L.val[jp] -= sum;
+            break;
+         }
+
+         else { // j > i or i == m-1 (last row)
+            // the spot j == i doesn't already exist in the matrix, 
+            // so we need to insert a new element and adjust row_ptr
+            
+            if ( i != it->L.m-1 ) {
+               it->L.col_ind.insert(it->L.col_ind.begin() + jp, i);
+               it->L.val.insert(it->L.val.begin() + jp, -sum);
+            }
+            else {
+               it->L.col_ind.insert(it->L.col_ind.end(), i);
+               it->L.val.insert(it->L.val.end(), -sum);
+            }
+
+            // adjust row pointers
+            for ( unsigned row = i+1; row <= it->L.m; ++row) {
+               it->L.row_ptr[row] += 1;
+            }
+
+            break;
+         }
+      }
+   }
+
+// }}}
+}
+
+void build_G(vector<image_level>::iterator it, 
+      const seg_params& params) {
+// {{{
+//     {  -V_{ij}                  i != j
+// G = {
+//     {   \sum_{k\neq i} V_{ik}   i == j
+//
+// Equivalently,
+// 1) G \gets -V
+// 2) G_{ii} \gets -\sum_{k\neq i} G_{ik}
+//
+// Should be 
+//    G = -V; for i in 1:size(G,1); G[i,i] -= sum(G[i,:]); end
+// in julia.
+//
+
+   it->G = -1.*it->V;
+
+   for (unsigned i = 0; i < it->G.m; ++i) {
+      
+      // compute full row sum
+      double sum = 0.;
+      for (unsigned jp = it->G.row_ptr[i]; jp < it->G.row_ptr[i+1]; ++jp) {
+         sum += it->G.val[jp];
+      }
+
+      // Insert into matrix
+      for (unsigned jp = it->G.row_ptr[i]; jp < it->G.row_ptr[i+1]; ++jp) {
+         unsigned j = it->G.col_ind[jp];
+
+         if ( j < i && i != it->G.m-1 ) {
+            continue;
+         }
+
+         else if ( j == i ) {
+            // this spot already exists in the matrix,
+            // so we don't need to insert
+
+            it->G.val[jp] -= sum;
+            break;
+         }
+
+         else { // j > i or i == m-1 (last row)
+            // the spot j == i doesn't already exist in the matrix, 
+            // so we need to insert a new element and adjust row_ptr
+            
+            if ( i != it->G.m-1 ) {
+               it->G.col_ind.insert(it->G.col_ind.begin() + jp, i);
+               it->G.val.insert(it->G.val.begin() + jp, -sum);
+            }
+            else {
+               it->G.col_ind.insert(it->G.col_ind.end(), i);
+               it->G.val.insert(it->G.val.end(), -sum);
+            }
+
+            // adjust row pointers
+            for ( unsigned row = i+1; row <= it->G.m; ++row) {
+               it->G.row_ptr[row] += 1;
+            }
+
+            break;
+         }
+      }
+   }
+
+// }}}
+}
+
 
 // }}}
 
@@ -230,13 +392,12 @@ void image_seg(const string& img_filename, seg_params& params) {
    cv::Mat image;
 
    image = load_image(img_filename);
-
    valarray<double> I = image_to_intensity(image, params);
-   //print_vector(I);
+  
 
-   matrix_crs<double> A1 = build_A1(I, params);
-   //A1.print_full();
-   //cout << A1 << endl;
+   // First Level stuff
+   vector<image_level> levels(1);
+   build_first_level(I, params, levels.begin());
 
 }
 

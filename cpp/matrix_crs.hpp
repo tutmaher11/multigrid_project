@@ -136,9 +136,14 @@ template<typename T>
 matrix_crs<T> eye_crs(unsigned m, unsigned n);
 
 template<typename T>
+matrix_crs<T> zeros(unsigned m, unsigned n);
+
+template<typename T>
 matrix_crs<T> kron(const matrix_crs<T>& A, const matrix_crs<T>& B);
 
 
+template<typename T>
+valarray<T> diag(const matrix_crs<T>& A);
 
 ////////////
 // Output //
@@ -165,7 +170,10 @@ ostream& operator<<(ostream& os, const matrix_crs<T>& mat) {
       os << endl;
    }
 
-   if ( mat.val.size() == 0 ) os << "Empty matrix";
+   if ( mat.val.size() == 0 ) {
+      if ( mat.m == 0 ) os << "Empty matrix";
+      else os << "Zero matrix";
+   }
 
    for (unsigned i=0; i<mat.m; ++i) {
       for (unsigned j=mat.row_ptr[i]; j<mat.row_ptr[i+1]; ++j) {

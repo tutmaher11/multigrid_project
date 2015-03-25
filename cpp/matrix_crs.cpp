@@ -518,6 +518,17 @@ matrix_crs<T> eye_crs(unsigned m, unsigned n) {
 }
 
 template<typename T>
+matrix_crs<T> zeros(unsigned m, unsigned n) {
+   vector<unsigned> row_ptr(m+1,0);
+   vector<unsigned> col_ind(0);
+   vector<T> val(0);
+   
+   return matrix_crs<T>(row_ptr, col_ind, val, m, n, 1);
+}
+
+
+
+template<typename T>
 matrix_crs<T> kron(const matrix_crs<T>& A, const matrix_crs<T>& B) {
    unsigned mA,nA,mB,nB,mK,nK,nnzK;
    unsigned startA, stopA, ptrA, lA;
@@ -569,6 +580,24 @@ matrix_crs<T> kron(const matrix_crs<T>& A, const matrix_crs<T>& B) {
 }
 
 
+template<typename T>
+valarray<T> diag(const matrix_crs<T>& A) {
+  
+   unsigned N = MIN(A.m, A.n);
+   valarray<T> d(0.,N);
+
+   for (unsigned i = 0; i < N; ++i) {
+      for (unsigned jp = A.row_ptr[i]; jp < A.row_ptr[i+1]; ++jp) {
+         unsigned j = A.col_ind[jp];
+         if ( j < i ) continue;
+         if ( j == i) d[i] = A.val[jp];
+         if ( j > i ) break; // diagonal of A is zero; d initialized to zero
+      }
+   }
+
+   return d;
+}
+
 
 ////////////
 // Output //
@@ -614,12 +643,16 @@ void matrix_crs<T>::print_full(void) {
 // double
 /////////
 template class matrix_crs<double>;
-template matrix_crs<double> eye_crs<double>(unsigned,unsigned);
 template void transpose<double>(matrix_crs<double>& dest,
                                               const matrix_crs<double>& src);
 template matrix_crs<double> transpose<double>(matrix_crs<double>& A);
+
+template matrix_crs<double> eye_crs<double>(unsigned, unsigned);
+template matrix_crs<double> zeros<double>(unsigned, unsigned);
 template matrix_crs<double> kron<double>(const matrix_crs<double>&,
                                          const matrix_crs<double>&);
+
+template valarray<double> diag<double>(const matrix_crs<double>&);
 
 template matrix_crs<double> operator*(const matrix_crs<double>&,const double&);
 template matrix_crs<double> operator*(const double&,const matrix_crs<double>&);

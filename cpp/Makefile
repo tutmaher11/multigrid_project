@@ -41,10 +41,10 @@ display_image: testing/display_image.cpp
 	$(CPP) $(CPPFLAGS) $(LDLIBS) $(OPENCVLIBS) $(LDFLAGS) testing/display_image.cpp -o display_image
 
 # Common files
-matrix_coo.o: matrix_coo.cpp matrix_crs.cpp utils.cpp
+matrix_coo.o: matrix_coo.cpp matrix_coo.hpp matrix_crs.cpp matrix_crs.hpp utils.cpp
 	$(CPP) $(CPPFLAGS) $(LDLIBS) $(LDFLAGS) -c matrix_coo.cpp
 
-matrix_crs.o: matrix_coo.cpp matrix_crs.cpp utils.cpp
+matrix_crs.o: matrix_coo.cpp matrix_coo.hpp matrix_crs.cpp matrix_crs.hpp utils.cpp
 	$(CPP) $(CPPFLAGS) $(LDLIBS) $(LDFLAGS) -c matrix_crs.cpp
 
 utils.o: utils.cpp utils.hpp

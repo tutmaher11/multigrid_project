@@ -3,4 +3,15 @@
 
 TODO
 ====
+* Use STL::lower_bound in build_L/build_G, since CRS.col_ind is sorted
+   - and also in matrix_crs::diag
+
+* It seems that we don't need to build all of L and G; we only need the 
+  diagonal elements, which correspond to the row sums (excluding the diagonal)
+
+* Output the pixel assignments to a cv::Mat and show segments on original image
+   - write intensity_to_image3, which returns a three channel (BGR) matrix
+   - then add the grayscale image (in BGR) plus another BGR image for the seg
+
+* the image size (n x n) is currently stored in params; it should instead/also be returned directly to the caller via the drivers
 

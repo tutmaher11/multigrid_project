@@ -76,8 +76,8 @@ clean:
 	@rm -f *.out # gprof
 
 cleandata:
-	make -C figures/ cleandata
+	make -C gen_imgs/ cleandata
 
 deepclean: clean cleandata
-	make -C figures/ deepclean
+	#make -C figures/ deepclean
 

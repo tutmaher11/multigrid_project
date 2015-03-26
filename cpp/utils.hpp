@@ -56,6 +56,12 @@ void print_vector(valarray<T>& v);
 template<typename T>
 void print_vector(const valarray<T>& v);
 
+template<typename T>
+void print_vector(vector<T>& v);
+
+template<typename T>
+void print_vector(const vector<T>& v);
+
 
 template<typename T>
 valarray<T> rand_vec(const unsigned m, const T low=0., const T high=1.);

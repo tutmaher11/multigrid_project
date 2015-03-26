@@ -32,6 +32,27 @@ void print_vector(const valarray<T>& v) {
    cout << endl;
 }
 
+template<typename T>
+void print_vector(vector<T>& v) {
+   for (auto it = v.begin(); it != v.end(); ++it) {
+      cout << setw(_PRINT_VECTOR_WIDTH_) << setfill(' ') 
+           << setprecision(_PRINT_VECTOR_PREC_)
+           << static_cast<double>(*it) << endl;
+   }
+   cout << endl;
+}
+
+template<typename T>
+void print_vector(const vector<T>& v) {
+   for (auto it = v.begin(); it != v.end(); ++it) {
+      cout << setw(_PRINT_VECTOR_WIDTH_) << setfill(' ') 
+           << setprecision(_PRINT_VECTOR_PREC_)
+           << static_cast<double>(*it) << endl;
+   }
+   cout << endl;
+}
+
+
 // return a vector with uniform[0,1] random entries
 template<typename T>
 valarray<T> rand_vec(const unsigned m, const T low, const T high) {
@@ -155,9 +176,16 @@ unsigned pow(unsigned b, unsigned e) {
 // Force instantiation
 template void print_vector<double>(valarray<double>& v);
 template void print_vector<double>(const valarray<double>& v);
+template void print_vector<double>(vector<double>& v);
+template void print_vector<double>(const vector<double>& v);
+
 template valarray<double> rand_vec<double>(const unsigned,
                                          const double, const double);
 template double norm<double>(const valarray<double>&, const unsigned);
 template double dl2norm<double>(const valarray<double>&, const unsigned);
 template double dl2norm<double>(const valarray<double>&, const unsigned,
       const unsigned);
+
+template void print_vector<unsigned>(vector<unsigned>& v);
+template void print_vector<unsigned>(const vector<unsigned>& v);
+

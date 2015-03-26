@@ -3,6 +3,8 @@
 *.tikz*
 *.out
 
+cpp/gen_imgs/*
+
 cpp/test
 cpp/display_image
 cpp/image_seg

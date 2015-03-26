@@ -112,19 +112,40 @@ void matrix_crs<T>::clean(void) {
 
    if ( val.size() == 0 ) return; // nothing to do
 
+   //for (unsigned row=0; row < m; ++row) {
+   //   while (val.size() > 0 && ind < row_ptr[row+1]) {
+   //      if ( abs(val[ind]) < _ELEMENT_ZERO_TOL_ ) {
+   //         col_ind.erase(col_ind.begin() + ind);
+   //         val.erase(val.begin() + ind);
+
+   //         // fix row pointers (TODO this should be accomplished via a num_removed counter)
+   //         for (unsigned r=row+1; r <= m; ++r) {
+   //            row_ptr[r] -= 1;
+   //         }
+   //         continue;
+   //      }
+   //      ++ind;
+   //   }
+   //}
+
+   // this is better, but could still use some work
    for (unsigned row=0; row < m; ++row) {
-      while (val.size() > 0 && ind < row_ptr[row+1]) {
+      unsigned num_removed = 0;
+      unsigned ind_max = row_ptr[row+1];
+      while ( val.size() > 0 && ind < ind_max ) {
          if ( abs(val[ind]) < _ELEMENT_ZERO_TOL_ ) {
             col_ind.erase(col_ind.begin() + ind);
             val.erase(val.begin() + ind);
-
-            // fix row pointers
-            for (unsigned r=row+1; r <= m; ++r) {
-               row_ptr[r] -= 1;
-            }
+            ++num_removed;
+            --ind_max;
             continue;
          }
-         ++ind;
+         else ++ind;
+      }
+
+      // Fix row pointers
+      for (unsigned r = row+1; r <= m; ++r) {
+         row_ptr[r] -= num_removed;
       }
    }
 }
@@ -363,7 +384,7 @@ void transpose(matrix_crs<T>& dest, const matrix_crs<T>& src) {
 }
 
 template<typename T>
-matrix_crs<T> transpose(matrix_crs<T>& A) {
+matrix_crs<T> transpose(const matrix_crs<T>& A) {
    
    matrix_crs<T> At;
    transpose(At,A);
@@ -582,7 +603,8 @@ matrix_crs<T> kron(const matrix_crs<T>& A, const matrix_crs<T>& B) {
 
 template<typename T>
 valarray<T> diag(const matrix_crs<T>& A) {
-  
+// TODO: look into std:lower_bound for a potentially faster lookup of the
+// diagonal element 
    unsigned N = MIN(A.m, A.n);
    valarray<T> d(0.,N);
 
@@ -645,7 +667,7 @@ void matrix_crs<T>::print_full(void) {
 template class matrix_crs<double>;
 template void transpose<double>(matrix_crs<double>& dest,
                                               const matrix_crs<double>& src);
-template matrix_crs<double> transpose<double>(matrix_crs<double>& A);
+template matrix_crs<double> transpose<double>(const matrix_crs<double>& A);
 
 template matrix_crs<double> eye_crs<double>(unsigned, unsigned);
 template matrix_crs<double> zeros<double>(unsigned, unsigned);

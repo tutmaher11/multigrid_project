@@ -6,13 +6,18 @@
 #ifndef _IMAGE_SEG_HPP_
 #define _IMAGE_SEG_HPP_ 
 
+#include <algorithm>
 #include <cmath>
+#include <climits>
 #include <iostream>
 #include <iomanip>
+#include <iterator>
+#include <list>
 #include <valarray>
 #include <vector>
 #include <string>
-#include <opencv2/opencv.hpp> // We use OpenCV for image I/O and Mat 
+
+#include <opencv2/opencv.hpp> // We use OpenCV for image I/O and cv::Mat 
 
 #include "matrix_coo.hpp"
 #include "matrix_crs.hpp"
@@ -38,6 +43,8 @@ class image_level {
       matrix_crs<double> G; // boundary length matrix
 
       valarray<double> Gamma; // saliency vector
+
+      valarray<double> I;   // intensity vector
 
       // construction
       image_level() = default;
@@ -65,8 +72,8 @@ class seg_params {
       double theta;     // coarsening strength threshold
       double gamma;     // saliency threshold
       double d1;        // sharpening threshold
-      double sigma;     // segment detection threshold level
-      double rho;       // variance rescaling detection threshold level
+      unsigned sigma;     // segment detection threshold level
+      unsigned rho;       // variance rescaling detection threshold level
 
       // construction
       seg_params() = default;
@@ -96,7 +103,7 @@ class seg_params {
 // First Level
 //////////////
 void build_first_level(const valarray<double>& I, const seg_params& params,
-      vector<image_level>::iterator it);
+      list<image_level>::iterator it);
 
 matrix_crs<double> build_A1(const valarray<double>& I,
       const seg_params& params);
@@ -104,13 +111,42 @@ matrix_crs<double> build_A1(const valarray<double>& I,
 
 // General Level
 ////////////////
-// These might still be used by the first level, though
-void build_L(vector<image_level>::iterator it, 
+// Some of these are used on the first level
+void build_L(list<image_level>::iterator it, 
       const seg_params& params);
 
-void build_G(vector<image_level>::iterator it, 
+void build_G(list<image_level>::iterator it, 
       const seg_params& params);
 
+matrix_crs<double> build_interp(const matrix_crs<double>& A,
+      const vector<unsigned>& C, unsigned M, unsigned M_next);
+
+matrix_crs<double> build_scaled_interp(const matrix_crs<double>& P);
+
+matrix_crs<double> coarse_variance(const matrix_crs<double>& Sf, 
+      const valarray<double>& Sc);
+
+void rescale_coarse_coupling(matrix_crs<double>& A, 
+      const list<image_level>::iterator it, const unsigned l_next,
+      const seg_params& params);
+
+// V-cycle
+//////////
+matrix_crs<double> image_vcycle(unsigned l, unsigned M, 
+      list<image_level>& levels, list<image_level>::iterator it,
+      seg_params& params);
+
+
+// Graph Coarsening
+///////////////////
+vector<unsigned> coarsen_AMG(const list<image_level>::iterator it, 
+      const seg_params& params);
+
+vector<unsigned> strongly_influenced_by_j(const matrix_crs<double>& A_bar,
+      const vector<unsigned>& T, const unsigned j);
+
+vector<unsigned> strongly_influence_k(const matrix_crs<double>& A_bar,
+      const vector<unsigned>& T, const unsigned k);
 
 
 // }}}
@@ -121,10 +157,15 @@ void build_G(vector<image_level>::iterator it,
 ///////////////////////
 // {{{
 
-void image_seg(const string& img_filename, seg_params& params);
+matrix_crs<double> image_seg(const string& img_filename, seg_params& params);
 
-void image_seg(const string& img_filename);
+// Overloaded
+matrix_crs<double> image_seg(const string& img_filename);
 
+// Helpers
+void assign_uniquely(matrix_crs<double>& U);
+
+vector<valarray<double>> mat_to_vecs(const matrix_crs<double>& U);
 
 // }}}
 
@@ -138,8 +179,12 @@ cv::Mat load_image(const string& img_filename);
 
 valarray<double> image_to_intensity(cv::Mat img, seg_params& params);
 
-// }}}
+cv::Mat intensity_to_image1(const valarray<double>& I, const unsigned n);
 
+void write_seg_images(const matrix_crs<double>& U, const unsigned n, 
+      const string& filename_base, const unsigned mode);
+
+// }}}
 
 
 #endif

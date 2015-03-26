@@ -109,7 +109,7 @@ template<typename T>
 void transpose(matrix_crs<T>& dest, const matrix_crs<T>& src);
 
 template<typename T>
-matrix_crs<T> transpose(matrix_crs<T>& A);
+matrix_crs<T> transpose(const matrix_crs<T>& A);
 
 // matrix add/sub
 template<typename T>

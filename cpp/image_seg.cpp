@@ -817,8 +817,14 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
    // Assign C-points
    vector<unsigned> C;
    for (unsigned i = 0; i < T.size(); ++i) {
-      if ( T[i] == 1 ) C.push_back(i);
+      if ( T[i] == 1 ) C.push_back(i); // TODO valgrind shows this (maybe!) as uninitialized and gives an error message
    }
+
+   //if ( C.size() == 0 ) {
+   //   cerr << "error: image_seg.cpp:coarsen_AMG: Vector of C-points is empty!"
+   //        << endl;
+   //   exit(-1);
+   //}
 
    return C;
 // }}}
@@ -1062,7 +1068,8 @@ cv::Mat load_image(const string& img_filename, const unsigned mode) {
    // Check to see if we read the image properly
    if ( img.data == NULL ) {
       cerr << "error: image_seg.cpp:load_image: OpenCV imread loaded empty "
-           << "matrix.  filename = " << img_filename << endl;
+           << "matrix." << endl
+           << "       filename = " << img_filename << endl;
       exit(-1);
    }
 
@@ -1095,7 +1102,7 @@ valarray<double> image_to_intensity(cv::Mat img, seg_params& params) {
       const uchar* img_i = img.ptr<uchar>(i); // pointer to row i
       for (int j=0; j < img.cols; ++j) {
          // scale to [0,1] from range [0, 255] (uchar)
-         I[img.rows*j + i] = static_cast<double>( img_i[j] )/ 255.;
+         I[img.rows*i + j] = static_cast<double>( img_i[j] )/ UCHAR_MAX;
       }
    }
   
@@ -1257,26 +1264,52 @@ int main(void) {
    seg_params params;
    matrix_crs<double> U;
 
-   img = load_image("test_imgs/square.png");
-   set_params(params, 10., 100., 100., 0.1, 0.1, 0.15, 2, 1);
-   U = image_seg(img, params);
-   write_seg_images(img, U, "gen_imgs/square", 1);
+   // Easy test cases
+   //////////////////
+   //img = load_image("test_imgs/square.png");
+   //set_params(params, 10., 100., 100., 0.1, 0.1, 0.15, 2, 1);
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/square", 1);
 
-   img = load_image("test_imgs/squares.png");
-   set_params(params, 10, 100., 100., 0.1, 0.1, 0.15, 3, 1);
-   U = image_seg(img, params);
-   write_seg_images(img, U, "gen_imgs/squares", 1);
+   //img = load_image("test_imgs/arrow_5.png");
+   //set_params(params, 10, 100., 100., 0.1, 0.1, 0.15, 3, 1);
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/arrow_5", 1);
+ 
+   //img = load_image("test_imgs/squares.png");
+   //set_params(params, 10, 100., 100., 0.1, 0.1, 0.15, 3, 1);
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/squares", 1);
 
-   // These parameters aren't really tuned
-   img = load_image("test_imgs/peppers_25.jpg");
-   set_params(params, 10., 10., 10., 0.01, 0.1, 0.15, 5, 1);
-   U = image_seg(img, params);
-   write_seg_images(img, U, "gen_imgs/peppers_25", 1);
+   //img = load_image("test_imgs/E_25.png");
+   //set_params(params, 10, 100., 100., 0.1, 0.1, 0.15, 3, 1);
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/E", 1);
+
+   //img = load_image("test_imgs/arrow_25.png");
+   //set_params(params, 10, 100., 100., 0.1, 0.1, 0.15, 3, 1);
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/arrow_25", 1);
+   
+  
+   // Peppers
+   //////////
+   //img = load_image("test_imgs/peppers_25.jpg");
+   //// This set finds 7 segments: it gets the three peppers and background,
+   //// but also finds some outliers
+   //set_params(params, 8., 4., 100., 0.05, 0.15, 0.15, 4, 1);
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/peppers_25", 1);
 
    img = load_image("test_imgs/peppers_50.jpg");
-   set_params(params, 10., 10., 10., 0.01, 0.1, 0.15, 6, 1);
+   set_params(params, 8., 4., 100., 0.03, 0.05, 0.15, 3, 1);
    U = image_seg(img, params);
    write_seg_images(img, U, "gen_imgs/peppers_50", 1);
+
+   //img = load_image("test_imgs/peppers_100.jpg");
+   //set_params(params, 8., 4., 100., 0.05, 0.05, 0.15, 10, 1);
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/peppers_100", 1);
  
    return 0;
 }

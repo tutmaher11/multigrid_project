@@ -80,14 +80,14 @@ class seg_params {
       seg_params(double init_alpha, double init_alpha_til, double init_beta,
             double init_theta, double init_gamma, double init_d1,
             double init_sigma, double init_rho) {
-         alpha = init_alpha;
+         alpha     = init_alpha;
          alpha_til = init_alpha_til;
-         beta = init_beta;
-         theta = init_theta;
-         gamma = init_gamma;
-         d1 = init_d1;
-         sigma = init_sigma;
-         rho = init_rho;
+         beta      = init_beta;
+         theta     = init_theta;
+         gamma     = init_gamma;
+         d1        = init_d1;
+         sigma     = init_sigma;
+         rho       = init_rho;
       }
 
       // destruction, move, copy
@@ -157,12 +157,17 @@ vector<unsigned> strongly_influence_k(const matrix_crs<double>& A_bar,
 ///////////////////////
 // {{{
 
-matrix_crs<double> image_seg(const string& img_filename, seg_params& params);
+matrix_crs<double> image_seg(const cv::Mat& img, seg_params& params);
 
 // Overloaded
-matrix_crs<double> image_seg(const string& img_filename);
+matrix_crs<double> image_seg(const cv::Mat& img);
 
 // Helpers
+void set_params(seg_params& params, const double alpha, 
+      const double alpha_til, const double beta, const double theta,
+      const double gamma, const double d1, const unsigned sigma,
+      const unsigned rho);
+
 void assign_uniquely(matrix_crs<double>& U);
 
 vector<valarray<double>> mat_to_vecs(const matrix_crs<double>& U);
@@ -175,14 +180,14 @@ vector<valarray<double>> mat_to_vecs(const matrix_crs<double>& U);
 ///////////////////
 // {{{
 
-cv::Mat load_image(const string& img_filename);
+cv::Mat load_image(const string& img_filename, const unsigned mode = 0);
 
 valarray<double> image_to_intensity(cv::Mat img, seg_params& params);
 
 cv::Mat intensity_to_image1(const valarray<double>& I, const unsigned n);
 
-void write_seg_images(const matrix_crs<double>& U, const unsigned n, 
-      const string& filename_base, const unsigned mode);
+void write_seg_images(const cv::Mat& img, const matrix_crs<double>& U,
+      const string& filename_base, const unsigned mode = 1);
 
 // }}}
 

@@ -914,12 +914,17 @@ vector<unsigned> strongly_influence_k(const matrix_crs<double>& A_bar,
 // {{{
 
 // main driver for image segmentation
-matrix_crs<double> image_seg(const string& img_filename, seg_params& params) {
+matrix_crs<double> image_seg(const cv::Mat& img, seg_params& params) {
 // {{{
-   cv::Mat image;
+  
+   // check if grayscale (single channel)
+   if ( img.channels() != 1 ) {
+      cerr << "error: image_seg.cpp:image_seg: Image segmentation expects "
+           << "an input matrix that has only one channel." << endl;
+      exit(-1);
+   }
 
-   image = load_image(img_filename);
-   valarray<double> I = image_to_intensity(image, params);
+   valarray<double> I = image_to_intensity(img, params);
   
    // First Level stuff
    list<image_level> levels(1);
@@ -939,19 +944,35 @@ matrix_crs<double> image_seg(const string& img_filename, seg_params& params) {
 
 // Overloaded drivers
 /////////////////////
-// this uses default segmentation parameters
-matrix_crs<double> image_seg(const string& img_filename) {
+// this uses default segmentation parameters.  You probably shouldn't use this
+matrix_crs<double> image_seg(const cv::Mat& img) {
 // {{{
    // (not necessarily good...) default parameters 
    // eqn 21 of Inglis et al. 2010
    seg_params params(100.,100.,100.,0.1,0.1,0.15,5,1);
 
-   return image_seg(img_filename, params);
+   return image_seg(img, params);
 // }}}
 }
 
 // Helpers
 //////////
+void set_params(seg_params& params, const double alpha, 
+      const double alpha_til, const double beta, const double theta,
+      const double gamma, const double d1, const unsigned sigma,
+      const unsigned rho) {
+// {{{
+   params.alpha     = alpha;
+   params.alpha_til = alpha_til;
+   params.beta      = beta;
+   params.theta     = theta;
+   params.gamma     = gamma;
+   params.d1        = d1;
+   params.sigma     = sigma;
+   params.rho       = rho;
+// }}}
+}
+
 void assign_uniquely(matrix_crs<double>& U) {
 // {{{
    for (unsigned i = 0; i < U.m; ++i) {
@@ -1024,14 +1045,19 @@ vector<valarray<double>> mat_to_vecs(const matrix_crs<double>& U) {
 ///////////////////
 // {{{
 
-cv::Mat load_image(const string& img_filename) {
+cv::Mat load_image(const string& img_filename, const unsigned mode) {
 // {{{
 // Load image from file specified by filename into a CV Mat with uchar entries
 // The image is blended to a grayscale image and sacled so the pixels
 // have values between 0 and 1
 // Matrices must be size n x n for the image segmentation method
+//
+// mode = 0 - default; grayscale
+// mode = 1 - 3 color channels
+//
+
    cv::Mat img;
-   img = cv::imread(img_filename, 0); // load image to grayscale; uchar vals
+   img = cv::imread(img_filename, mode); // uchar [0,255] vals
 
    // Check to see if we read the image properly
    if ( img.data == NULL ) {
@@ -1101,7 +1127,7 @@ cv::Mat intensity_to_image1(const valarray<double>& I, const unsigned n) {
 }
 
 
-void write_seg_images(const matrix_crs<double>& U, const unsigned n, 
+void write_seg_images(const cv::Mat& orig_img, const matrix_crs<double>& U,
       const string& filename_base, const unsigned mode) {
 // {{{
 // Write the segments specified by the matrix U to files with base filename
@@ -1111,69 +1137,146 @@ void write_seg_images(const matrix_crs<double>& U, const unsigned n,
 //    filename_base_seg_03.jpg
 //    ...
 // 
-// Each image should be size n x n
+// Each image should be orig_img.rows x orig_img.cols ( square )
 //
-// mode == 0 - write images with just the segments, no original image
-// mode == 1 - blend each segment with the original image 
-//             TODO
+// mode = 0 - Just write images of the segments; don't blend with the
+//            original image
+//
+// mode = 1 - Blend each segment with the original image
+//
+// TODO
+// mode = 2 - Add (saturate) segment on top of original
+//
 
    vector<valarray<double>> intensities = mat_to_vecs(U);
 
-   if ( mode == 0 ) {
-
+   if ( mode == 0 ) { // segment only
+      
       for (unsigned i = 0; i < intensities.size(); ++i) {
+         // Make filename
          string filename = filename_base;
          filename += "_seg_";
          // add leading zeros
-         if ( i > 10 ) filename += "0";
+         if ( i > 9 ) filename += "0";
          else filename += "00";
          filename += to_string(i);
          filename += ".png";
 
          try {
-            cout << "writing image file " << filename << endl;
+            cout << "writing segment image file: " << filename << endl;
             cv::imwrite(filename, 
-                  intensity_to_image1(intensities[i], n));
+                  intensity_to_image1(intensities[i], orig_img.rows));
          }
          catch ( runtime_error& ex ) {
             cerr << "error: image_seg.cpp:write_seg_images: Something went "
                  << "wrong while writing images." << endl 
-                 << "mode = " << mode << endl
                  << "exception: " << ex.what();
             exit(-1);
          }
       }
    }
 
-   else if ( mode == 1 ) {
-      cerr << "error: not implemented" << endl;
-      exit(-1);
+   else if ( mode == 1 ) { // original + segment blend
+
+      // RGB images
+      cv::Mat orig_rgb(orig_img.size(), CV_8UC3);
+      cv::cvtColor(orig_img, orig_rgb, CV_GRAY2RGB);
+
+      cv::Mat seg_rgb(orig_img.size(), CV_8UC3);
+      cv::Mat blend_rgb(orig_img.size(), CV_8UC3);
+      
+      double alpha = 0.5; // proportion of segment vs. original
+      
+      uchar color[] = {128, 128, 0}; // BGR - teal
+      
+      for (unsigned i = 0; i < intensities.size(); ++i) {
+         // Make filename
+         string filename = filename_base;
+         filename += "_seg_blend_";
+         // add leading zeros
+         if ( i > 9 ) filename += "0";
+         else filename += "00";
+         filename += to_string(i);
+         filename += ".png";
+
+         // make the segment some color
+         cv::cvtColor(intensity_to_image1(intensities[i], orig_img.rows),
+               seg_rgb, CV_GRAY2RGB);
+
+         cv::Mat channels[3];
+         split(seg_rgb, channels);
+
+         for (unsigned c = 0; c < 3; ++c) {
+
+            unsigned ind_end = channels[c].rows*channels[c].cols;
+            uchar* pix_ptr = channels[c].ptr<uchar>(0); // pointer to 
+                                                        // beginning of img
+            for ( unsigned ind = 0; ind < ind_end; ++ind ) {
+               if ( pix_ptr[ind] > 0 ) {   // if the pixel is non-zero,
+                  pix_ptr[ind] = color[c]; // set the color
+               }
+            }
+         }
+
+         merge(channels, 3, seg_rgb);
+
+         // blend the segment and original
+         // blend_rgb = alpha*seg_rgb + (1-alpha)*orig_rgb + 0.0
+         cv::addWeighted(seg_rgb, alpha, orig_rgb, 1.-alpha, 0.0, blend_rgb);
+
+         try {
+            cout << "writing original+segment blend image file: "
+                 << filename << endl;
+            cv::imwrite(filename, blend_rgb);
+         }
+         catch ( runtime_error& ex ) {
+            cerr << "error: image_seg.cpp:write_seg_images: Something went "
+                 << "wrong while writing images." << endl 
+                 << "exception: " << ex.what();
+            exit(-1);
+         }
+      }
    }
 
    else {
-      cerr << "error: image_seg.cpp:write_segment_images: Bad mode "
-           << "specified: mode = " << mode << endl;
+      cerr << "error: image_seg.cpp:write_seg_images: Bad mode give: "
+           << "mode = " << mode << endl;
       exit(-1);
    }
+
 // }}}
 }
+
 
 // }}}
 
 
 int main(void) {
 
-   //seg_params params(10.,100.,100.,0.1,0.1,0.15,2,1);
-   //matrix_crs<double> U = image_seg("square.png", params);
-   //write_seg_images(U, params.n, "gen_imgs/square", 0);
+   cv::Mat img;
+   seg_params params;
+   matrix_crs<double> U;
 
-   seg_params params(10.,100.,100.,0.1,0.1,0.15,3,1);
-   matrix_crs<double> U = image_seg("squares.png", params);
-   write_seg_images(U, params.n, "gen_imgs/squares", 0);
-   
-   //seg_params params(10.,10.,10.,0.01,0.1,0.15,5,1);
-   //matrix_crs<double> U = image_seg("peppers_25.jpg", params);
-   //write_seg_images(U, params.n, "gen_imgs/peppers_25", 0);
-   
+   img = load_image("test_imgs/square.png");
+   set_params(params, 10., 100., 100., 0.1, 0.1, 0.15, 2, 1);
+   U = image_seg(img, params);
+   write_seg_images(img, U, "gen_imgs/square", 1);
+
+   img = load_image("test_imgs/squares.png");
+   set_params(params, 10, 100., 100., 0.1, 0.1, 0.15, 3, 1);
+   U = image_seg(img, params);
+   write_seg_images(img, U, "gen_imgs/squares", 1);
+
+   // These parameters aren't really tuned
+   img = load_image("test_imgs/peppers_25.jpg");
+   set_params(params, 10., 10., 10., 0.01, 0.1, 0.15, 5, 1);
+   U = image_seg(img, params);
+   write_seg_images(img, U, "gen_imgs/peppers_25", 1);
+
+   img = load_image("test_imgs/peppers_50.jpg");
+   set_params(params, 10., 10., 10., 0.01, 0.1, 0.15, 6, 1);
+   U = image_seg(img, params);
+   write_seg_images(img, U, "gen_imgs/peppers_50", 1);
+ 
    return 0;
 }

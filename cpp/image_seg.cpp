@@ -1164,8 +1164,9 @@ void write_seg_images(const cv::Mat& orig_img, const matrix_crs<double>& U,
          string filename = filename_base;
          filename += "_seg_";
          // add leading zeros
-         if ( i > 9 ) filename += "0";
-         else filename += "00";
+         if ( i > 99 ) filename += "0";
+         else if ( i > 9 ) filename += "00";
+         else filename += "000";
          filename += to_string(i);
          filename += ".png";
 
@@ -1201,8 +1202,9 @@ void write_seg_images(const cv::Mat& orig_img, const matrix_crs<double>& U,
          string filename = filename_base;
          filename += "_seg_blend_";
          // add leading zeros
-         if ( i > 9 ) filename += "0";
-         else filename += "00";
+         if ( i > 99 ) filename += "0";
+         else if ( i > 9 ) filename += "00";
+         else filename += "000";
          filename += to_string(i);
          filename += ".png";
 
@@ -1290,7 +1292,31 @@ int main(void) {
    //set_params(params, 10, 100., 100., 0.1, 0.1, 0.15, 3, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/arrow_25", 1);
-   
+
+   // Blob
+   /////////
+   img = load_image("test_imgs/blob_64.png");
+   //// This parameter set finds the two main segments, but a few additional
+   //// outliers/boundary segments which we don't want
+   //set_params(params, 10., 1., 100., 0.05, 0.10, 0.15, 5, 2);
+   set_params(params, 5., 1., 100., 0.03, 0.08, 0.15, 5, 2);
+   U = image_seg(img, params);
+   write_seg_images(img, U, "gen_imgs/blob_64", 1);
+ 
+   //img = load_image("test_imgs/blob_128.png");
+   //set_params(params, 5., 1., 100., 0.03, 0.08, 0.15, 5, 2);
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/blob_128", 1);
+ 
+   // Spiral
+   /////////
+   //img = load_image("test_imgs/spiral_64.png");
+   ////// This parameter set finds the two main segments, but like 70 additional
+   ////// outliers/boundary segments which we don't want
+   ////set_params(params, 10., 1., 100., 0.1, 0.15, 0.15, 5, 1);
+   //set_params(params, 10., 1., 100., 0.05, 0.10, 0.15, 5, 2);
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/spiral_64", 1);
   
    // Peppers
    //////////
@@ -1301,15 +1327,22 @@ int main(void) {
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/peppers_25", 1);
 
-   img = load_image("test_imgs/peppers_50.jpg");
-   set_params(params, 8., 4., 100., 0.03, 0.05, 0.15, 3, 1);
-   U = image_seg(img, params);
-   write_seg_images(img, U, "gen_imgs/peppers_50", 1);
+   //img = load_image("test_imgs/peppers_50.jpg");
+   //set_params(params, 8., 4., 100., 0.03, 0.05, 0.15, 3, 1);
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/peppers_50", 1);
 
    //img = load_image("test_imgs/peppers_100.jpg");
-   //set_params(params, 8., 4., 100., 0.05, 0.05, 0.15, 10, 1);
+   //set_params(params, 8., 4., 100., 0.05, 0.05, 0.15, 5, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/peppers_100", 1);
- 
+
+   //img = load_image("test_imgs/peppers.jpg");
+   //set_params(params, 8., 4., 100., 0.05, 0.05, 0.15, 5, 1);
+   //U = image_seg(img, params);
+   //cout << "writing segments" << endl;
+   //write_seg_images(img, U, "gen_imgs/peppers", 1);
+
+
    return 0;
 }

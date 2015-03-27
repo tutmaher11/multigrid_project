@@ -9,5 +9,5 @@ TODO
 * It seems that we don't need to build all of L and G; we only need the 
   diagonal elements, which correspond to the row sums (excluding the diagonal)
 
-* Our segments are rotated (test on peppers_50) 90 deg. CW.
-
+* valgrind -v --track-origins=yes --leak-check=full ./image_seg 
+  is finding some potentially lost blocks.  I think these might be coming from OpenCV.

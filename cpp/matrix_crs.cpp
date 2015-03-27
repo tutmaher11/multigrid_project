@@ -158,6 +158,7 @@ inline void matrix_crs<T>::deepclean(void) {
 
 // Sort the column indexes for each row
 // Used after Gustavson's algorithm for sparse mat-mat
+// TODO: find a better way to do this
 template<typename T>
 void matrix_crs<T>::sort_inds(void) {
 

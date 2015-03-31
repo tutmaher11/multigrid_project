@@ -720,15 +720,17 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
    matrix_crs<double> P = build_interp(it->A, C, M, M_next);
    matrix_crs<double> P_trans = transpose(P);
 
-   P.print_full();
+   //cout << "P = " << endl;
+   //cout << P << endl;
+   //P.print_full();
 
    //vector<double> row_sums(P.m, 0.);
    //for (unsigned i = 0; i < P.m; ++i) {
    //   for (unsigned jp = P.row_ptr[i]; jp < P.row_ptr[i+1]; ++jp) {
    //      row_sums[i] += P.val[jp];
    //   }
+   //   cout << "row_sum[i] = " << setprecision(16) << row_sums[i] << endl;
    //}
-   //print_vector(row_sums);
 
    // build column-scaled interpolation matrix P
    matrix_crs<double> Ptil = build_scaled_interp(P);
@@ -782,7 +784,19 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
          params);
 
    // Interpolate U
+   //cout << "U = " << endl;
+   //U.print_full();
+   //cout << U << endl;
+
    U = P*U;
+
+   //cout << "P = " << endl;
+   //cout << P << endl;
+   //P.print_full();
+
+   //cout << "U = " << endl;
+   //U.print_full();
+   //cout << U << endl;
 
    // Sharpen overlapping segments
    for (unsigned ind = 0; ind < U.val.size(); ++ind) {
@@ -791,8 +805,17 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
       else continue;
    }
 
+   //cout << "U (post-sharpen) = " << endl;
+   //U.print_full();
+   //cout << U << endl;
+
    // We probably introduced some zeros into U via P*U and also the sharpening.
    U.clean();
+   
+   //cout << "U (post-clean) = " << endl;
+   //U.print_full();
+   //cout << U << endl;
+
 
    return U;
 // }}}
@@ -1385,10 +1408,10 @@ int main(void) {
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/square", 1);
 
-   img = load_image("test_imgs/square_inv.png");
-   set_params(params, 10., 5., 10., 0.1, 0.15, 0.15, 2, 1);
-   U = image_seg(img, params);
-   write_seg_images(img, U, "gen_imgs/square_inv", 1);
+   //img = load_image("test_imgs/square_inv.png");
+   //set_params(params, 10., 5., 10., 0.1, 0.15, 0.15, 2, 1);
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/square_inv", 1);
 
    //img = load_image("test_imgs/arrow_5.png");
    //set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 2, 1);
@@ -1396,14 +1419,14 @@ int main(void) {
    //write_seg_images(img, U, "gen_imgs/arrow_5", 1);
  
    //img = load_image("test_imgs/squares.png");
-   //set_params(params, 100., 5., 100., 0.05, 0.1, 0.15, 3, 1);
+   //set_params(params, 100., 100., 100., 0.1, 0.1, 0.15, 3, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/squares", 1);
 
-   //img = load_image("test_imgs/E_25.png");
-   //set_params(params, 100., 100., 100., 0.1, 0.1, 0.15, 5, 1);
-   //U = image_seg(img, params);
-   //write_seg_images(img, U, "gen_imgs/E", 1);
+   img = load_image("test_imgs/E_25.png");
+   set_params(params, 100., 100., 100., 0.1, 0.1, 0.15, 5, 1);
+   U = image_seg(img, params);
+   write_seg_images(img, U, "gen_imgs/E", 1);
 
    //img = load_image("test_imgs/arrow_25.png");
    //set_params(params, 10, 5., 100., 0.1, 0.1, 0.15, 3, 1);

@@ -106,12 +106,13 @@ matrix_crs<T>::matrix_crs(
 
 
 // Remove zero entries.  This assumes a proper CRS format was input
+// TODO: it might be faster to just create new row_ptr, col_ind, val vectors
 template<typename T>
 void matrix_crs<T>::clean(void) {
-   unsigned ind=0;
 
    if ( val.size() == 0 ) return; // nothing to do
 
+   //unsigned ind = 0;
    //for (unsigned row=0; row < m; ++row) {
    //   while (val.size() > 0 && ind < row_ptr[row+1]) {
    //      if ( abs(val[ind]) < _ELEMENT_ZERO_TOL_ ) {
@@ -129,25 +130,49 @@ void matrix_crs<T>::clean(void) {
    //}
 
    // this is better, but could still use some work
-   for (unsigned row=0; row < m; ++row) {
-      unsigned num_removed = 0;
-      unsigned ind_max = row_ptr[row+1];
-      while ( val.size() > 0 && ind < ind_max ) {
-         if ( abs(val[ind]) < _ELEMENT_ZERO_TOL_ ) {
-            col_ind.erase(col_ind.begin() + ind);
-            val.erase(val.begin() + ind);
-            ++num_removed;
-            --ind_max;
-            continue;
-         }
-         else ++ind;
-      }
+   //unsigned ind = 0;
+   //for (unsigned row=0; row < m; ++row) {
+   //   unsigned num_removed = 0;
+   //   unsigned ind_max = row_ptr[row+1];
+   //   while ( val.size() > 0 && ind < ind_max ) {
+   //      if ( abs(val[ind]) < _ELEMENT_ZERO_TOL_ ) {
+   //         col_ind.erase(col_ind.begin() + ind);
+   //         val.erase(val.begin() + ind);
+   //         ++num_removed;
+   //         --ind_max;
+   //         continue;
+   //      }
+   //      else ++ind;
+   //   }
 
-      // Fix row pointers
-      for (unsigned r = row+1; r <= m; ++r) {
-         row_ptr[r] -= num_removed;
+   //   // Fix row pointers
+   //   for (unsigned r = row+1; r <= m; ++r) {
+   //      row_ptr[r] -= num_removed;
+   //   }
+   //}
+
+   // This copies the non-zero elements of *this to new vectors
+   vector<unsigned> rp(row_ptr.size(), 0), ci;
+   vector<T> v;
+   T biggest = MAX(-*min_element(val.begin(), val.end()), *max_element(val.begin(), val.end()));
+   T zero_cutoff = _ELEMENT_ZERO_TOL_ * biggest;
+
+   rp[0] = 0;
+   for (unsigned i = 0; i < m; ++i) {
+      rp[i+1] = rp[i];
+
+      for (unsigned jp = row_ptr[i]; jp < row_ptr[i+1]; ++jp) {
+         if ( abs(val[jp]) > zero_cutoff ) {
+            ++rp[i+1];
+            ci.push_back(col_ind[jp]);
+            v.push_back(val[jp]);
+         }
       }
    }
+
+   row_ptr = rp;
+   col_ind = ci;
+   val = v;
 }
 
 // Hopefully don't have to use this 'cuz everything is out of order
@@ -210,13 +235,13 @@ void matrix_crs<T>::sort_inds(void) {
       // easy cases
       if ( num <= 1 ) continue; // zero or one elem row
       else if ( num == 2 ) {
-         unsigned s = row_ptr[i], f = s+1;
-         if ( col_ind[s] > col_ind[f] ) { // swap the two elements
+         unsigned f = row_ptr[i], s = f+1;
+         if ( col_ind[f] > col_ind[s] ) { // swap the two elements
             unsigned utmp = col_ind[s];
             col_ind[s] = col_ind[f];
             col_ind[f] = utmp;
 
-            unsigned Ttmp = val[s];
+            T Ttmp = val[s];
             val[s] = val[f];
             val[f] = Ttmp;
          }
@@ -242,6 +267,9 @@ void matrix_crs<T>::sort_inds(void) {
          ++ind;
       }
    }
+
+   //cout << "C (post-sort) = " << endl;
+   //cout << *this << endl;
 }
 
 ////////////////
@@ -540,6 +568,7 @@ matrix_crs<T> operator*(const matrix_crs<T>& A, const matrix_crs<T>& B) {
    matrix_crs<T> C(Crow_ptr, Ccol_ind, Cval, Am, Bn, 1); // Build CRS directly
 
    //cout << "C (pre-sort) = " << endl;
+   //cout << C << endl;
    //C.print_full();
 
    C.sort_inds();

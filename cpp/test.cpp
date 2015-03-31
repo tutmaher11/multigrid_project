@@ -470,6 +470,34 @@ void test_crs_matmat(void) {
    // }}}
 }
 
+void test_crs_matmat1(void) {
+   // {{{
+   vector<unsigned> Brow_ptr = {0, 1, 2, 3, 4, 5};
+   vector<unsigned> Bcol_ind = {0, 0, 1, 0, 0};
+   vector<double> Bval = {1, 1, 1, 1, 1}; 
+   matrix_crs<double> B(Brow_ptr, Bcol_ind, Bval, 5, 2, 1);
+
+   vector<unsigned> Arow_ptr = {0, 1, 4, 5, 7, 9, 12, 13, 16, 18, 20, 21, 24, 25};
+   vector<unsigned> Acol_ind = {0, 0, 1, 2, 1, 0, 2, 1, 2, 0, 2, 3, 2, 1, 2, 4, 2, 3, 2, 4, 3, 2, 3, 4, 4};
+   vector<double> Aval = {1, 0.499999949, 0.499999949, 1.019682014e-07, 1, 4.5900953e-07, 0.999999541, 4.590998329e-07, 0.9999995409, 0.499999949, 1.019682014e-07, 0.499999949, 1, 0.499999949, 1.019682014e-07, 0.499999949, 0.9999995409, 4.590998329e-07, 0.9999995409, 4.590998329e-07, 1, 1.019682014e-07, 0.499999949, 0.499999949, 1};
+   matrix_crs<double> A(Arow_ptr, Acol_ind, Aval, 13, 5, 1);
+   
+   cout << "A = " << endl;
+   A.print_full();
+   //cout << A << endl;
+
+   cout << "B = " << endl;
+   B.print_full();
+   //cout << B << endl;
+   
+   matrix_crs<double> C = A*B;
+   cout << "C = " << endl;
+   C.print_full();
+   
+   // }}}
+}
+
+
 ////////////////////
 // Model problems //
 ////////////////////
@@ -1288,18 +1316,18 @@ void fig8_4(void) {
 // NOTE: In image_seg.cpp:coarsen_AMG, you should change the strong dependance
 // to max_element instead of row_sum
 
-   seg_params params;
-   set_params(params, 0., 0., 0., 0.1, 0.1, 0, 0, 0);
+   //seg_params params;
+   //set_params(params, 0., 0., 0., 0.1, 0.1, 0, 0, 0);
 
-   list<image_level> levels(1);
-   auto it = levels.begin();
-   it->A = lap9(3);
+   //list<image_level> levels(1);
+   //auto it = levels.begin();
+   //it->A = lap9(3);
 
-   it->Gamma = valarray<double>(INFINITY, it->A.m);
-   vector<unsigned> C = coarsen_AMG(it, params);
+   //it->Gamma = valarray<double>(INFINITY, it->A.m);
+   //vector<unsigned> C = coarsen_AMG(it, params);
 
-   cout << "C = " << endl;
-   print_vector(C);
+   //cout << "C = " << endl;
+   //print_vector(C);
 
 // }}}
 }
@@ -1321,7 +1349,8 @@ int main() {
    //test_crs_add();
    //test_crs_kron();
    //test_crs_matvec();
-   //test_crs_matmat();
+   test_crs_matmat();
+   //test_crs_matmat1(); // this exposed a bug in the 2-element swap in sort_inds()
 
 
    // Model problems

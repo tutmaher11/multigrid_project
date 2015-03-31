@@ -32,9 +32,9 @@ run: test
 	./test
 
 # Test
-test: $(COMMON_O) image_seg.o test.cpp
+test: $(COMMON_O) test.cpp
 	$(CPP) $(CPPFLAGS) $(LDLIBS) $(LDFLAGS) -c test.cpp
-	$(CPP) $(CPPFLAGS) -flto $(LDLIBS) $(OPENCVLIBS) $(LDFLAGS) $(COMMON_O) image_seg.o test.o -o test
+	$(CPP) $(CPPFLAGS) -flto $(LDLIBS) $(LDFLAGS) $(COMMON_O) test.o -o test
 
 
 # ./testing

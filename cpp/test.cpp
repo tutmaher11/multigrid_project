@@ -1198,7 +1198,7 @@ int main() {
    //test_crs_add();
    //test_crs_kron();
    //test_crs_matvec();
-   //test_crs_matmat();
+   test_crs_matmat();
    
    // Model problems
    //test_model_problems();

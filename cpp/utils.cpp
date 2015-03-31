@@ -173,6 +173,31 @@ unsigned pow(unsigned b, unsigned e) {
    else return pow(b, e-1);
 }
 
+
+/////////////
+// Sorting //
+/////////////
+//void sort_perm(vector<unsigned>& p, vector<unsigned>::iterator v_begin,
+//      vector<unsigned>::iterator v_end) {
+//
+//   // p = {0, 1, 2, ..., num-1}
+//   auto num = distance(v_begin, v_end);
+//   if ( static_cast<unsigned>(p.size()) < num ) {
+//      cerr << "error: utils.cpp:sort_perm: permutation vector p is not large "
+//           << "enough!" << endl;
+//      exit(-1);
+//   }
+//   
+//   iota(p.begin(), p.begin() + num, 0);
+//   sort(p.begin(), p.begin() + num, [&] (unsigned i, unsigned j) -> bool 
+//         { return *(v_begin + i) < *(v_begin + j); });
+//
+//}
+
+
+
+
+
 // Force instantiation
 template void print_vector<double>(valarray<double>& v);
 template void print_vector<double>(const valarray<double>& v);

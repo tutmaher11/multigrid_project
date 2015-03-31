@@ -158,43 +158,88 @@ inline void matrix_crs<T>::deepclean(void) {
 
 // Sort the column indexes for each row
 // Used after Gustavson's algorithm for sparse mat-mat
-// TODO: find a better way to do this
 template<typename T>
 void matrix_crs<T>::sort_inds(void) {
 
-   struct sort_pair {
-      unsigned col;
-      T v;
-   };
+   //struct sort_pair {
+   //   unsigned col;
+   //   T v;
+   //};
 
-   vector<sort_pair> pair(n); // worst case is n entries in a row
+   //vector<sort_pair> pair(n); // worst case is n entries in a row
 
-   unsigned ind = 0;
-   for (unsigned i=0; i < m; ++i) {
-    
-      // Accumulate pairs of (column index,val) for row i
-      ind = 0;
-      pair.resize(n); // this shouldn't cause any reallocation
-      for (unsigned j=row_ptr[i]; j < row_ptr[i+1]; ++j) {
-         pair[ind].col = col_ind[j];
-         pair[ind].v   = val[j];
-         ind += 1; 
+   //unsigned ind = 0;
+   //for (unsigned i=0; i < m; ++i) {
+   // 
+   //   // Accumulate pairs of (column index,val) for row i
+   //   ind = 0;
+   //   pair.resize(n); // this shouldn't cause any reallocation
+   //   for (unsigned j=row_ptr[i]; j < row_ptr[i+1]; ++j) {
+   //      pair[ind].col = col_ind[j];
+   //      pair[ind].v   = val[j];
+   //      ind += 1; 
+   //   }
+   //   if ( ind > 0 ) pair.resize(ind);
+   //   else continue; // nothing to sort!
+
+   //   // Sort the pair
+   //   sort(pair.begin(), pair.end(),
+   //         [&] (const sort_pair& lhs, const sort_pair& rhs) -> bool {
+   //         return (lhs.col < rhs.col);
+   //      });
+
+   //   //  Place the sorted pairs back in the matrix
+   //   ind = 0;
+   //   for (unsigned j=row_ptr[i]; j < row_ptr[i+1]; ++j) {
+   //      col_ind[j] = pair[ind].col;
+   //      val[j]     = pair[ind].v;
+   //      ind += 1; 
+   //   }
+   //}
+
+   // https://github.com/JuliaLang/julia/blob/master/base/sparse/sparsematrix.jl
+   // http://stackoverflow.com/questions/17074324/how-can-i-sort-two-vectors-in-the-same-way-with-criteria-that-uses-only-one-of
+   //unsigned ind = 0;
+   vector<unsigned> index(n, 0), col_ind_wrk(n, 0); // this isn't exactly
+                                                    // memory efficient...
+   vector<T> val_wrk(n, 0);
+
+   for (unsigned i = 0; i < m; ++i) {
+
+      unsigned num = row_ptr[i+1]-row_ptr[i];
+      // easy cases
+      if ( num <= 1 ) continue; // zero or one elem row
+      else if ( num == 2 ) {
+         unsigned s = row_ptr[i], f = s+1;
+         if ( col_ind[s] > col_ind[f] ) { // swap the two elements
+            unsigned utmp = col_ind[s];
+            col_ind[s] = col_ind[f];
+            col_ind[f] = utmp;
+
+            unsigned Ttmp = val[s];
+            val[s] = val[f];
+            val[f] = Ttmp;
+         }
+         continue;
       }
-      if ( ind > 0 ) pair.resize(ind);
-      else continue; // nothing to sort!
 
-      // Sort the pair
-      sort(pair.begin(), pair.end(),
-            [&] (const sort_pair& lhs, const sort_pair& rhs) -> bool {
-            return (lhs.col < rhs.col);
-         });
+      copy(col_ind.begin() + row_ptr[i], col_ind.begin() + row_ptr[i+1],
+            col_ind_wrk.begin());
+      copy(val.begin() + row_ptr[i], val.begin() + row_ptr[i+1],
+            val_wrk.begin());
 
-      //  Place the sorted pairs back in the matrix
-      ind = 0;
-      for (unsigned j=row_ptr[i]; j < row_ptr[i+1]; ++j) {
-         col_ind[j] = pair[ind].col;
-         val[j]     = pair[ind].v;
-         ind += 1; 
+      iota(index.begin(), index.begin() + num, 0);
+      sort(index.begin(), index.begin() + num, 
+            [&] (unsigned pi, unsigned pj) -> bool 
+            { return *(col_ind_wrk.begin() + pi) 
+            < *(col_ind_wrk.begin() + pj); });
+
+      unsigned ind = 0;
+      for (unsigned jp = row_ptr[i]; jp < row_ptr[i+1]; ++jp) {
+         col_ind[jp] = col_ind_wrk[index[ind]];
+         val[jp] = val_wrk[index[ind]];
+
+         ++ind;
       }
    }
 }
@@ -349,7 +394,7 @@ matrix_crs<T> operator-(const matrix_crs<T>& lhs, const matrix_crs<T>& rhs) {
 }
 
 
-// matrix transposea
+// matrix transpose
 // inspired by
 // http://www.cise.ufl.edu/research/sparse/CSparse/CSparse/Source/cs_transpose.c
 template<typename T>
@@ -494,6 +539,9 @@ matrix_crs<T> operator*(const matrix_crs<T>& A, const matrix_crs<T>& B) {
    // C is not guaranteed to be sorted
    matrix_crs<T> C(Crow_ptr, Ccol_ind, Cval, Am, Bn, 1); // Build CRS directly
 
+   //cout << "C (pre-sort) = " << endl;
+   //C.print_full();
+
    C.sort_inds();
 
    return C;
@@ -604,20 +652,30 @@ matrix_crs<T> kron(const matrix_crs<T>& A, const matrix_crs<T>& B) {
 
 template<typename T>
 valarray<T> diag(const matrix_crs<T>& A) {
-// TODO: look into std:lower_bound for a potentially faster lookup of the
-// diagonal element 
+   //unsigned N = MIN(A.m, A.n);
+   //valarray<T> d(0.,N);
+
+   //for (unsigned i = 0; i < N; ++i) {
+   //   for (unsigned jp = A.row_ptr[i]; jp < A.row_ptr[i+1]; ++jp) {
+   //      unsigned j = A.col_ind[jp];
+   //      if ( j < i ) continue;
+   //      if ( j == i) d[i] = A.val[jp];
+   //      if ( j > i ) break; // diagonal of A is zero; d initialized to zero
+   //   }
+   //}
+
+   // This assumes that the matrix A is in sorted CRS format
    unsigned N = MIN(A.m, A.n);
    valarray<T> d(0.,N);
 
    for (unsigned i = 0; i < N; ++i) {
-      for (unsigned jp = A.row_ptr[i]; jp < A.row_ptr[i+1]; ++jp) {
-         unsigned j = A.col_ind[jp];
-         if ( j < i ) continue;
-         if ( j == i) d[i] = A.val[jp];
-         if ( j > i ) break; // diagonal of A is zero; d initialized to zero
-      }
+      auto it_jp = lower_bound(A.col_ind.begin() + A.row_ptr[i],
+            A.col_ind.begin() + A.row_ptr[i+1], i);
+      unsigned j = *it_jp;
+      if ( it_jp != A.col_ind.begin() + A.row_ptr[i+1] && j == i ) d[i] = A.val[distance(A.col_ind.begin(),it_jp)];
+      else break; // diagonal of A is zero; d initialized to zero
    }
-
+ 
    return d;
 }
 
@@ -627,6 +685,40 @@ valarray<T> diag(const matrix_crs<T>& A) {
 ////////////
 template<typename T>
 void matrix_crs<T>::print_full(void) {
+// Print sparse matrix as a dense array
+
+   unsigned ind=0;
+   for (unsigned r=0; r<m; ++r) {
+      for (unsigned c=0; c<n; ++c) {
+
+         // we've hit a nonzero in this row
+         if (col_ind.size() > 0 &&
+             ind < row_ptr[r+1] &&
+             ind < col_ind.size() && // to appease valgrind memcheck
+             c == col_ind[ind] ) { 
+            cout << ' ' << setw(_PRINT_FULL_WIDTH_) << setfill(' ')
+                 << setprecision(_PRINT_FULL_PREC_)
+                 << static_cast<double>(val[ind]);
+            ind += 1;
+         }
+
+         // print a zero
+         else {
+            cout << ' ' << setw(_PRINT_FULL_WIDTH_) << setfill(' ')
+                 << setprecision(_PRINT_FULL_PREC_)
+                 << 0e0;
+         }
+
+         // end of row, so print endl
+         if (c == n-1) cout << endl;
+      }
+   }
+
+   cout << endl;
+}
+
+template<typename T>
+void matrix_crs<T>::print_full(void) const {
 // Print sparse matrix as a dense array
 
    unsigned ind=0;

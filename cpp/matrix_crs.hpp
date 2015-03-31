@@ -87,6 +87,7 @@ class matrix_crs {
       friend ostream& operator<< <>(ostream& os, const matrix_crs& mat); 
 
       void print_full(void);
+      void print_full(void) const;
  
 };
 

@@ -77,7 +77,8 @@ matrix_crs<double> build_A1(const valarray<double>& I,
             // we must have ind == 0, top-left
             if ( _DEBUG_ >= 2) {
                cout << "debug 2: ind = " << ind 
-                    << " top row, left side" << endl;
+                    << " top row, left side "
+                    << "I[ind] = " << I[ind] << endl; 
             }
 
             ++row_ptr[ind+1];
@@ -93,7 +94,8 @@ matrix_crs<double> build_A1(const valarray<double>& I,
             // we must have ind == n-1, top-right
             if ( _DEBUG_ >= 2) {
                cout << "debug 2: ind = " << ind 
-                    << " top row, right side" << endl;
+                    << " top row, right side "
+                    << "I[ind] = " << I[ind] << endl; 
             }
  
             ++row_ptr[ind+1];
@@ -106,12 +108,13 @@ matrix_crs<double> build_A1(const valarray<double>& I,
          }
 
          else { // in the middle
-            ++row_ptr[ind+1];
             if ( _DEBUG_ >= 2) {
                cout << "debug 2: ind = " << ind 
-                    << " top row, middle side" << endl;
+                    << " top row, middle side "
+                    << "I[ind] = " << I[ind] << endl; 
             }
  
+            ++row_ptr[ind+1];
             col_ind.push_back(ind-1);
             val.push_back(exp(-a*abs(I[ind]-I[ind-1])));
 
@@ -129,7 +132,8 @@ matrix_crs<double> build_A1(const valarray<double>& I,
          if ( ind % n == 0 ) { // on left side
             if ( _DEBUG_ >= 2) {
                cout << "debug 2: ind = " << ind 
-                    << " middle row, left side" << endl;
+                    << " middle row, left side "
+                    << "I[ind] = " << I[ind] << endl; 
             }
  
             ++row_ptr[ind+1];
@@ -148,7 +152,8 @@ matrix_crs<double> build_A1(const valarray<double>& I,
          else if ( (ind + 1) % n == 0 ) { // on right side
             if ( _DEBUG_ >= 2) {
                cout << "debug 2: ind = " << ind 
-                    << " middle row, right side" << endl;
+                    << " middle row, right side "
+                    << "I[ind] = " << I[ind] << endl; 
             }
  
             ++row_ptr[ind+1];
@@ -167,7 +172,8 @@ matrix_crs<double> build_A1(const valarray<double>& I,
          else { // in the middle
             if ( _DEBUG_ >= 2) {
                cout << "debug 2: ind = " << ind 
-                    << " middle row, middle side" << endl;
+                    << " middle row, middle side "
+                    << "I[ind] = " << I[ind] << endl; 
             }
  
             ++row_ptr[ind+1];
@@ -192,7 +198,8 @@ matrix_crs<double> build_A1(const valarray<double>& I,
          if ( ind % n == 0 ) { // on left side
             if ( _DEBUG_ >= 2) {
                cout << "debug 2: ind = " << ind 
-                    << " bottom row, left side" << endl;
+                    << " bottom row, left side "
+                    << "I[ind] = " << I[ind] << endl; 
             }
  
             ++row_ptr[ind+1];
@@ -207,7 +214,8 @@ matrix_crs<double> build_A1(const valarray<double>& I,
          else if ( (ind + 1) % n == 0 ) { // on right side
             if ( _DEBUG_ >= 2) {
                cout << "debug 2: ind = " << ind 
-                    << " bottom row, right side" << endl;
+                    << " bottom row, right side "
+                    << "I[ind] = " << I[ind] << endl; 
             }
  
             ++row_ptr[ind+1];
@@ -222,7 +230,8 @@ matrix_crs<double> build_A1(const valarray<double>& I,
          else { // in the middle
             if ( _DEBUG_ >= 2) {
                cout << "debug 2: ind = " << ind 
-                    << " bottom row, middle side" << endl;
+                    << " bottom row, middle side "
+                    << "I[ind] = " << I[ind] << endl; 
             }
  
             ++row_ptr[ind+1];
@@ -262,58 +271,88 @@ void build_L(list<image_level>::iterator it,
 //    L = -A; for i in 1:size(L,1); L[i,i] -= sum(L[i,:]); end
 // in julia.
 //
-//TODO: this is a bottleneck in the code
+// JMF 30-03-2015: this was a bottleneck in the code
 //      look into std::lower_bound
 //      http://www.cplusplus.com/reference/algorithm/lower_bound/
+//
+//      Is it better to start with empty vectors and build L from scratch?
+//      As opposed to inserting things along the way, which is linear in 
+//      remaining entries for std::vector.
+
+   // XXX: JMF 30-03-2015 I think this is wrong.  Check the last diagonal element
+   //it->L = -1.*it->A;
+
+   //for (unsigned i = 0; i < it->L.m; ++i) {
+   //   
+   //   // compute full row sum
+   //   double sum = 0.;
+   //   for (unsigned jp = it->L.row_ptr[i]; jp < it->L.row_ptr[i+1]; ++jp) {
+   //      sum += it->L.val[jp];
+   //   }
+
+   //   // Insert into matrix
+   //   for (unsigned jp = it->L.row_ptr[i]; jp < it->L.row_ptr[i+1]; ++jp) {
+   //      unsigned j = it->L.col_ind[jp];
+
+   //      if ( j < i && i != it->L.m-1 ) {
+   //         continue;
+   //      }
+
+   //      else if ( j == i ) {
+   //         // this spot already exists in the matrix,
+   //         // so we don't need to insert
+
+   //         it->L.val[jp] -= sum;
+   //         break;
+   //      }
+
+   //      else { // j > i or i == m-1 (last row)
+   //         // the spot j == i doesn't already exist in the matrix, 
+   //         // so we need to insert a new element and adjust row_ptr
+   //         
+   //         if ( i != it->L.m-1 ) {
+   //            it->L.col_ind.insert(it->L.col_ind.begin() + jp, i);
+   //            it->L.val.insert(it->L.val.begin() + jp, -sum);
+   //         }
+   //         else {
+   //            it->L.col_ind.insert(it->L.col_ind.end(), i);
+   //            it->L.val.insert(it->L.val.end(), -sum);
+   //         }
+
+   //         // adjust row pointers
+   //         for ( unsigned row = i+1; row <= it->L.m; ++row) {
+   //            it->L.row_ptr[row] += 1;
+   //         }
+
+   //         break;
+   //      }
+   //   }
+   //}
 
    it->L = -1.*it->A;
+   
+   vector<double> val(it->L.m,0.);
 
    for (unsigned i = 0; i < it->L.m; ++i) {
-      
-      // compute full row sum
-      double sum = 0.;
       for (unsigned jp = it->L.row_ptr[i]; jp < it->L.row_ptr[i+1]; ++jp) {
-         sum += it->L.val[jp];
-      }
-
-      // Insert into matrix
-      for (unsigned jp = it->L.row_ptr[i]; jp < it->L.row_ptr[i+1]; ++jp) {
-         unsigned j = it->L.col_ind[jp];
-
-         if ( j < i && i != it->L.m-1 ) {
-            continue;
-         }
-
-         else if ( j == i ) {
-            // this spot already exists in the matrix,
-            // so we don't need to insert
-
-            it->L.val[jp] -= sum;
-            break;
-         }
-
-         else { // j > i or i == m-1 (last row)
-            // the spot j == i doesn't already exist in the matrix, 
-            // so we need to insert a new element and adjust row_ptr
-            
-            if ( i != it->L.m-1 ) {
-               it->L.col_ind.insert(it->L.col_ind.begin() + jp, i);
-               it->L.val.insert(it->L.val.begin() + jp, -sum);
-            }
-            else {
-               it->L.col_ind.insert(it->L.col_ind.end(), i);
-               it->L.val.insert(it->L.val.end(), -sum);
-            }
-
-            // adjust row pointers
-            for ( unsigned row = i+1; row <= it->L.m; ++row) {
-               it->L.row_ptr[row] += 1;
-            }
-
-            break;
-         }
+         val[i] -= it->L.val[jp];
       }
    }
+
+   vector<unsigned> row_ptr(it->L.m + 1), col_ind(it->L.m);
+   for (unsigned i = 0; i < it->L.m; ++i) {
+      row_ptr[i] = i;
+      col_ind[i] = i;
+   }
+   row_ptr[it->L.m] = it->L.m;
+
+   matrix_crs<double> sdiag(row_ptr, col_ind, val, it->L.m, it->L.n, 1);
+
+   it->L += sdiag;
+
+   //it->A.print_full();
+   //it->L.print_full();
+   
 // }}}
 }
 
@@ -333,54 +372,77 @@ void build_G(list<image_level>::iterator it,
 // in julia.
 //
 
+   // XXX: JMF 30-03-2015 I think this is wrong.  Check the last diagonal element
+   //it->G = -1.*it->V;
+
+   //for (unsigned i = 0; i < it->G.m; ++i) {
+   //   
+   //   // compute full row sum
+   //   double sum = 0.;
+   //   for (unsigned jp = it->G.row_ptr[i]; jp < it->G.row_ptr[i+1]; ++jp) {
+   //      sum += it->G.val[jp];
+   //   }
+
+   //   // Insert into matrix
+   //   for (unsigned jp = it->G.row_ptr[i]; jp < it->G.row_ptr[i+1]; ++jp) {
+   //      unsigned j = it->G.col_ind[jp];
+
+   //      if ( j < i && i != it->G.m-1 ) {
+   //         continue;
+   //      }
+
+   //      else if ( j == i ) {
+   //         // this spot already exists in the matrix,
+   //         // so we don't need to insert
+
+   //         it->G.val[jp] -= sum;
+   //         break;
+   //      }
+
+   //      else { // j > i or i == m-1 (last row)
+   //         // the spot j == i doesn't already exist in the matrix, 
+   //         // so we need to insert a new element and adjust row_ptr
+   //         
+   //         if ( i != it->G.m-1 ) {
+   //            it->G.col_ind.insert(it->G.col_ind.begin() + jp, i);
+   //            it->G.val.insert(it->G.val.begin() + jp, -sum);
+   //         }
+   //         else {
+   //            it->G.col_ind.insert(it->G.col_ind.end(), i);
+   //            it->G.val.insert(it->G.val.end(), -sum);
+   //         }
+
+   //         // adjust row pointers
+   //         for ( unsigned row = i+1; row <= it->G.m; ++row) {
+   //            it->G.row_ptr[row] += 1;
+   //         }
+
+   //         break;
+   //      }
+   //   }
+   //}
+
    it->G = -1.*it->V;
+   
+   vector<double> val(it->G.m,0.);
 
    for (unsigned i = 0; i < it->G.m; ++i) {
-      
-      // compute full row sum
-      double sum = 0.;
       for (unsigned jp = it->G.row_ptr[i]; jp < it->G.row_ptr[i+1]; ++jp) {
-         sum += it->G.val[jp];
-      }
-
-      // Insert into matrix
-      for (unsigned jp = it->G.row_ptr[i]; jp < it->G.row_ptr[i+1]; ++jp) {
-         unsigned j = it->G.col_ind[jp];
-
-         if ( j < i && i != it->G.m-1 ) {
-            continue;
-         }
-
-         else if ( j == i ) {
-            // this spot already exists in the matrix,
-            // so we don't need to insert
-
-            it->G.val[jp] -= sum;
-            break;
-         }
-
-         else { // j > i or i == m-1 (last row)
-            // the spot j == i doesn't already exist in the matrix, 
-            // so we need to insert a new element and adjust row_ptr
-            
-            if ( i != it->G.m-1 ) {
-               it->G.col_ind.insert(it->G.col_ind.begin() + jp, i);
-               it->G.val.insert(it->G.val.begin() + jp, -sum);
-            }
-            else {
-               it->G.col_ind.insert(it->G.col_ind.end(), i);
-               it->G.val.insert(it->G.val.end(), -sum);
-            }
-
-            // adjust row pointers
-            for ( unsigned row = i+1; row <= it->G.m; ++row) {
-               it->G.row_ptr[row] += 1;
-            }
-
-            break;
-         }
+         val[i] -= it->G.val[jp];
       }
    }
+
+   vector<unsigned> row_ptr(it->G.m + 1), col_ind(it->G.m);
+   for (unsigned i = 0; i < it->G.m; ++i) {
+      row_ptr[i] = i;
+      col_ind[i] = i;
+   }
+   row_ptr[it->G.m] = it->G.m;
+
+   matrix_crs<double> sdiag(row_ptr, col_ind, val, it->G.m, it->G.n, 1);
+
+   it->G += sdiag;
+ 
 // }}}
 }
 
@@ -400,7 +462,7 @@ matrix_crs<double> build_interp(const matrix_crs<double>& A,
    for (unsigned i = 0; i < M; ++i) {
       row_ptr[i+1] = row_ptr[i];
 
-      if ( i == C[C_ind] ) { // inject C-point up
+      if ( C_ind < C.size() && i == C[C_ind] ) { // inject C-point up
          ++row_ptr[i+1];
          col_ind.push_back(C_ind);
          val.push_back(1.);
@@ -480,12 +542,20 @@ matrix_crs<double> build_scaled_interp(const matrix_crs<double>& P) {
 //  col_sums = sum(P,1); Pt = P; for j in 1:size(Pt,2); Pt[:,j] /= col_sums[j]; end
 //
 
+
    matrix_crs<double> Ptil = P;
    vector<double> col_sums(P.n,0.);
 
+   //cout << "P = " << endl;
+   //P.print_full();
+   //cout << P << endl;
+   //cout << "Ptil = " << endl;
+   //Ptil.print_full();
+   
    // compute column sums
    for (unsigned i = 0; i < P.m; ++i) {
       for (unsigned jp = P.row_ptr[i]; jp < P.row_ptr[i+1]; ++jp) {
+         //cout << "set col = " << P.col_ind[jp] << endl;
          col_sums[P.col_ind[jp]] += P.val[jp];
       }
    }
@@ -493,10 +563,15 @@ matrix_crs<double> build_scaled_interp(const matrix_crs<double>& P) {
    // scale columns of P by col_sums to form Ptil
    for (unsigned i = 0; i < Ptil.m; ++i) {
       for (unsigned jp = Ptil.row_ptr[i]; jp < Ptil.row_ptr[i+1]; ++jp) {
+         //cout << "requested col = " << Ptil.col_ind[jp] << endl; 
          Ptil.val[jp] /= col_sums[Ptil.col_ind[jp]];
       }
    }
 
+   //cout << "Ptil = " << endl;
+   //Ptil.print_full();
+   //cout << Ptil << endl;
+ 
    return Ptil;
 // }}}
 }
@@ -549,10 +624,12 @@ void rescale_coarse_coupling(matrix_crs<double>& A,
       // XXX: Is this an aliasing issue?
       const matrix_crs<double> *S = &( next(it)->S );
 
+      //cout << "S = " << endl;
+      //next(it)->S.print_full();
+
       for (unsigned i = 0; i < A.m; ++i) {
          
          double Ii = next(it)->I[i];
-         unsigned sip = S->row_ptr[i];
          unsigned sip_end = S->row_ptr[i+1];
 
          for (unsigned jp = A.row_ptr[i]; jp < A.row_ptr[i+1]; ++jp) {
@@ -564,6 +641,7 @@ void rescale_coarse_coupling(matrix_crs<double>& A,
             // rescale using multi-level variance
             // Computing the 2-norms is probably slow
             // We're also not utilizing the symmetry of A; that's a factor of 2
+            unsigned sip = S->row_ptr[i]; // need to reset sip each time, since we increment it
             unsigned sjp = S->row_ptr[j];
             unsigned sjp_end = S->row_ptr[j+1];
 
@@ -618,6 +696,8 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
 
    // coarsen the graph
    vector<unsigned> C = coarsen_AMG(it, params);
+   //cout << "C = " << endl;
+   //print_vector(C);
 
    unsigned M_next = static_cast<unsigned>(C.size());
 
@@ -639,6 +719,16 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
    matrix_crs<double> P = build_interp(it->A, C, M, M_next);
    matrix_crs<double> P_trans = transpose(P);
 
+   P.print_full();
+
+   //vector<double> row_sums(P.m, 0.);
+   //for (unsigned i = 0; i < P.m; ++i) {
+   //   for (unsigned jp = P.row_ptr[i]; jp < P.row_ptr[i+1]; ++jp) {
+   //      row_sums[i] += P.val[jp];
+   //   }
+   //}
+   //print_vector(row_sums);
+
    // build column-scaled interpolation matrix P
    matrix_crs<double> Ptil = build_scaled_interp(P);
    matrix_crs<double> Ptil_trans = transpose(Ptil);
@@ -655,6 +745,11 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
    next(it)->A = (it->A)*P;
    next(it)->A = P_trans*(next(it)->A);
    rescale_coarse_coupling(next(it)->A, it, l_next, params);
+
+   //matrix_crs<double> Z = next(it)->A - transpose(next(it)->A);
+   //Z.clean();
+   //cout << "next(it)->A sym? " << endl << Z << endl;
+
 
    // coarse-level area matrices
    // W = next(it)->A;
@@ -695,7 +790,7 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
       else continue;
    }
 
-   // We maybe introduced some zeros into U via P*U and also the sharpening.
+   // We probably introduced some zeros into U via P*U and also the sharpening.
    U.clean();
 
    return U;
@@ -755,7 +850,12 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
    col_ind.resize(0);
    val.resize(0);
 
-   
+   //cout << "A = " << endl;
+   //it->A.print_full();
+   //cout << "A_bar = " << endl;
+   //A_bar.print_full();
+   //cout << A_bar << endl;
+
    // start assigning C/F nodes
    // T[i] = 0  <- unassigned
    // T[i] = 1  <- C-point
@@ -776,7 +876,7 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
    // before we mess around with that
 
    unsigned j, max_lambda;
-   vector<unsigned> K;
+   //vector<unsigned> K;
    while ( any_of(T.begin(), T.end(), 
             [] (unsigned Ti) -> bool {return Ti == 0;}) ) {
 
@@ -795,11 +895,18 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
          exit(-1);
       }
 
+      //cout << "T = " << endl;
+      //print_vector(T);
+
+      //cout << "lambda = " << endl;
+      //print_vector(lambda);
+ 
+      //cout << "j = " << j << endl;
+     
       T[j] = 1;
       lambda[j] = 0;
 
       vector<unsigned> K = strongly_influenced_by_j(A_bar, T, j);
-      //print_vector(K);
 
       vector<unsigned> H;
       for (auto k_it = K.begin(); k_it != K.end(); ++k_it) {
@@ -820,11 +927,11 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
       if ( T[i] == 1 ) C.push_back(i); // TODO valgrind shows this (maybe!) as uninitialized and gives an error message
    }
 
-   //if ( C.size() == 0 ) {
-   //   cerr << "error: image_seg.cpp:coarsen_AMG: Vector of C-points is empty!"
-   //        << endl;
-   //   exit(-1);
-   //}
+   if ( C.size() == 0 ) {
+      cerr << "error: image_seg.cpp:coarsen_AMG: Vector of C-points is empty!"
+           << endl;
+      exit(-1);
+   }
 
    return C;
 // }}}
@@ -836,54 +943,45 @@ vector<unsigned> strongly_influenced_by_j(const matrix_crs<double>& A_bar,
 // K is the set of nodes k such that T[k] == 0 and A_bar[k,j] > 0
 // Such nodes are strongly influenced by node j
 //
-   
+
    vector<unsigned> K;
 
-   //// Look down columns (which is slow in CRS!)
-   //// We check if T_k == 0 first, because that is much cheaper than 
-   //// checking if A_bar[k,j] > 0 (think "constraint propagation")
-   // XXX: if done this way, this produces a bottleneck in the code
-   //for (unsigned k = 0; k < A_bar.m; ++k) {
-
-   //   if ( T[k] != 0 ) continue;
-
-   //   // we now know T[k] == 0, so check if A_bar[k,j] > 0
-   //   for (unsigned cp = A_bar.row_ptr[k]; cp < A_bar.row_ptr[k+1]; ++cp) {
-   //      unsigned c = A_bar.col_ind[cp];
-
-   //      if ( c < j ) continue;
-   //      else if ( c == j ) { // value exists at [k,j] in A_bar
-   //         if ( A_bar.val[cp] > 0 ) {
-   //            //cout << "[k,j] = [" << k << "," << j << "]" << endl;
-   //            K.push_back(k);
-   //            break;
-   //         }
-   //      }
-   //      else { // c > j, so value doesn't exist in matrix
-   //         break;
-   //      }
-   //   }
-   //}
-   
-   // A_bar is symmetric, so we could look down rows instead of columns
-   // This should be faster in CRS, but only works for symmetric matrices
-   //matrix_crs<double> Z = A_bar - transpose(A_bar);
-   //Z.clean();
-   //cout << Z << endl;
-   //exit(-1);
-   
-   // Look down the jth row of A_bar, which is equivalent to checking down
-   // the kth column, since A_bar is symmetric
+   // Look down columns (which is slow in CRS!)
    // We check if T_k == 0 first, because that is much cheaper than 
    // checking if A_bar[k,j] > 0 (think "constraint propagation")
-   for (unsigned kp = A_bar.row_ptr[j]; kp < A_bar.row_ptr[j+1]; ++kp) {
+   // NOTE: if done this way, this produces a bottleneck in the code
+   for (unsigned k = 0; k < A_bar.m; ++k) {
 
-      unsigned k = A_bar.col_ind[kp];
-      if ( A_bar.val[kp] > 0 && T[k] == 0 ) {
+      if ( T[k] != 0 ) continue;
+
+      // we now know T[k] == 0, so check if A_bar[k,j] > 0
+      
+      //for (unsigned cp = A_bar.row_ptr[k]; cp < A_bar.row_ptr[k+1]; ++cp) {
+      //   unsigned c = A_bar.col_ind[cp];
+
+      //   if ( c < j ) continue;
+      //   else if ( c == j ) { // value exists at [k,j] in A_bar
+      //      if ( A_bar.val[cp] > 0 ) {
+      //         //cout << "[k,j] = [" << k << "," << j << "]" << endl;
+      //         K.push_back(k);
+      //         break;
+      //      }
+      //   }
+      //   else { // c > j, so value doesn't exist in matrix
+      //      break;
+      //   }
+      //}
+
+      auto it_cp = lower_bound(A_bar.col_ind.begin() + A_bar.row_ptr[k], A_bar.col_ind.begin() + A_bar.row_ptr[k+1], j);
+      unsigned c = *it_cp;
+      if ( it_cp != A_bar.col_ind.begin() + A_bar.row_ptr[k+1] && c == j && A_bar.val[distance(A_bar.col_ind.begin(), it_cp)] > 0 ) { // A_bar[k,j] > 0
          K.push_back(k);
       }
    }
 
+   //cout << "K = " << endl;
+   //print_vector(K);
+ 
    return K;
 // }}}
 }
@@ -942,6 +1040,7 @@ matrix_crs<double> image_seg(const cv::Mat& img, seg_params& params) {
    matrix_crs<double> U = image_vcycle(l, M, levels, levels.begin(), params);
 
    // Assign pixels uniquely
+   //U.print_full();
    assign_uniquely(U);
 
    return U;
@@ -1269,42 +1368,54 @@ int main(void) {
    // Easy test cases
    //////////////////
    //img = load_image("test_imgs/square.png");
-   //set_params(params, 10., 100., 100., 0.1, 0.1, 0.15, 2, 1);
+   //set_params(params, 10., 5., 10., 0.1, 0.15, 0.15, 2, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/square", 1);
 
+   //img = load_image("test_imgs/square_inv.png");
+   //set_params(params, 10., 5., 10., 0.1, 0.15, 0.15, 2, 1);
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/square_inv", 1);
+
    //img = load_image("test_imgs/arrow_5.png");
-   //set_params(params, 10, 100., 100., 0.1, 0.1, 0.15, 3, 1);
+   //set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 2, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/arrow_5", 1);
  
    //img = load_image("test_imgs/squares.png");
-   //set_params(params, 10, 100., 100., 0.1, 0.1, 0.15, 3, 1);
+   //set_params(params, 100., 5., 100., 0.05, 0.1, 0.15, 3, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/squares", 1);
 
    //img = load_image("test_imgs/E_25.png");
-   //set_params(params, 10, 100., 100., 0.1, 0.1, 0.15, 3, 1);
+   //set_params(params, 100., 100., 100., 0.1, 0.1, 0.15, 5, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/E", 1);
 
    //img = load_image("test_imgs/arrow_25.png");
-   //set_params(params, 10, 100., 100., 0.1, 0.1, 0.15, 3, 1);
+   //set_params(params, 10, 5., 100., 0.1, 0.1, 0.15, 3, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/arrow_25", 1);
 
+   // Checker Disk
+   ///////////////
+   img = load_image("test_imgs/checker_disk_60.png");
+   set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1);
+   U = image_seg(img, params);
+   write_seg_images(img, U, "gen_imgs/checker_disk_60", 1);
+ 
    // Blob
    /////////
-   img = load_image("test_imgs/blob_64.png");
-   //// This parameter set finds the two main segments, but a few additional
-   //// outliers/boundary segments which we don't want
-   //set_params(params, 10., 1., 100., 0.05, 0.10, 0.15, 5, 2);
-   set_params(params, 5., 1., 100., 0.03, 0.08, 0.15, 5, 2);
-   U = image_seg(img, params);
-   write_seg_images(img, U, "gen_imgs/blob_64", 1);
+   //img = load_image("test_imgs/blob_64.png");
+   ////// This parameter set finds the two main segments, but a few additional
+   ////// outliers/boundary segments which we don't want
+   ////set_params(params, 10., 1., 100., 0.05, 0.10, 0.15, 5, 2);
+   //set_params(params, 5., 1., 100., 0.03, 0.08, 0.15, 5, 2);
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/blob_64", 1);
  
    //img = load_image("test_imgs/blob_128.png");
-   //set_params(params, 5., 1., 100., 0.03, 0.08, 0.15, 5, 2);
+   //set_params(params, 10., 1., 10., 0.1, 0.1, 0.15, 5, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/blob_128", 1);
  

@@ -3,8 +3,7 @@
 
 TODO
 ====
-* Use STL::lower_bound in build_L/build_G, since CRS.col_ind is sorted
-   - and also in matrix_crs::diag
+* Since JMF fixed a few things, some pixels aren't begin assigned, even in the non-unique U (e.g. arrow_5)
 
 * It seems that we don't need to build all of L and G; we only need the 
   diagonal elements, which correspond to the row sums (excluding the diagonal)

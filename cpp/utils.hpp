@@ -77,11 +77,18 @@ template<typename T>
 T dl2norm(const valarray<T>& v, const unsigned nx, const unsigned ny);
 
 
-
 //////////
 // Misc //
 //////////
 int pow(int b, int e);
+
 unsigned pow(unsigned b, unsigned e);
+
+
+/////////////
+// Sorting //
+/////////////
+//void sort_perm(vector<unsigned>& p, vector<unsigned>::iterator v_begin,
+//      vector<unsigned>::iterator v_end);
 
 #endif

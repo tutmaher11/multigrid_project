@@ -53,6 +53,7 @@ matrix_crs<double> build_A1(const valarray<double>& I,
 // 15  16  17  18  19
 // 20  21  22  23  24
 //
+// TODO: can call std::vector::insert with an initializer list
 
    unsigned n = params.n;
    double a = params.alpha;
@@ -829,12 +830,17 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
       //double max_elem = *max_element(it->A.row_ptr.begin() + it->A.row_ptr[i],
       //      it->A.row_ptr.begin() + it->A.row_ptr[i+1]);
 
+      // XXX: Testing coarsen_AMG via test.cpp:fig8_4
+      //double min_elem = *min_element(it->A.row_ptr.begin() + it->A.row_ptr[i],
+      //      it->A.row_ptr.begin() + it->A.row_ptr[i+1]);
+
       // now add elements to A_bar
       for (unsigned jp = it->A.row_ptr[i]; jp < it->A.row_ptr[i+1]; ++jp) {
          unsigned j = it->A.col_ind[jp];
          double Aij = it->A.val[jp];
 
          if ( j != i && Aij >= params.theta*row_sum ) {
+         //if ( j != i && -Aij >= -params.theta*min_elem ) { // XXX: Testing coarsen_AMG via test.cpp:fig8_4
             ++row_ptr[i+1];
             col_ind.push_back(j);
             val.push_back(Aij);
@@ -908,6 +914,9 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
 
       vector<unsigned> K = strongly_influenced_by_j(A_bar, T, j);
 
+      //cout << "K = " << endl;
+      //print_vector(K);
+
       vector<unsigned> H;
       for (auto k_it = K.begin(); k_it != K.end(); ++k_it) {
          
@@ -975,6 +984,9 @@ vector<unsigned> strongly_influenced_by_j(const matrix_crs<double>& A_bar,
       auto it_cp = lower_bound(A_bar.col_ind.begin() + A_bar.row_ptr[k], A_bar.col_ind.begin() + A_bar.row_ptr[k+1], j);
       unsigned c = *it_cp;
       if ( it_cp != A_bar.col_ind.begin() + A_bar.row_ptr[k+1] && c == j && A_bar.val[distance(A_bar.col_ind.begin(), it_cp)] > 0 ) { // A_bar[k,j] > 0
+      //if ( it_cp != A_bar.col_ind.begin() + A_bar.row_ptr[k+1] && 
+      //      c == j && A_bar.val[distance(A_bar.col_ind.begin(), it_cp)] != 0. ) { // XXX: Testing coarsen_AMG via test.cpp:fig8_4
+
          K.push_back(k);
       }
    }
@@ -1000,6 +1012,7 @@ vector<unsigned> strongly_influence_k(const matrix_crs<double>& A_bar,
       unsigned h = A_bar.col_ind[hp];
 
       if ( T[h] == 0 && A_bar.val[hp] > 0 ) {
+      //if ( T[h] == 0 && A_bar.val[hp] != 0. ) { // XXX: Testing coarsen_AMG via test.cpp:fig8_4
          //cout << "[k,h] = [" << k << "," << h << "]" << endl;
          H.push_back(h);
       }
@@ -1372,10 +1385,10 @@ int main(void) {
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/square", 1);
 
-   //img = load_image("test_imgs/square_inv.png");
-   //set_params(params, 10., 5., 10., 0.1, 0.15, 0.15, 2, 1);
-   //U = image_seg(img, params);
-   //write_seg_images(img, U, "gen_imgs/square_inv", 1);
+   img = load_image("test_imgs/square_inv.png");
+   set_params(params, 10., 5., 10., 0.1, 0.15, 0.15, 2, 1);
+   U = image_seg(img, params);
+   write_seg_images(img, U, "gen_imgs/square_inv", 1);
 
    //img = load_image("test_imgs/arrow_5.png");
    //set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 2, 1);
@@ -1399,10 +1412,10 @@ int main(void) {
 
    // Checker Disk
    ///////////////
-   img = load_image("test_imgs/checker_disk_60.png");
-   set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1);
-   U = image_seg(img, params);
-   write_seg_images(img, U, "gen_imgs/checker_disk_60", 1);
+   //img = load_image("test_imgs/checker_disk_60.png");
+   //set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1);
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/checker_disk_60", 1);
  
    // Blob
    /////////

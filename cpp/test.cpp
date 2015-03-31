@@ -15,6 +15,8 @@
 #include "classical_solvers.hpp"
 #include "multigrid.hpp"
 
+#include "image_seg.hpp"
+
 using namespace std;
 
 // Test helpers
@@ -1181,6 +1183,126 @@ void test_mg_2d_fmg(void) {
 }
 
 
+/////////////////
+// coarsen_AMG //
+/////////////////
+matrix_crs<double> lap9(unsigned L) {
+// {{{
+
+   unsigned nx = pow(2,L)-1, ny = pow(2,L)-1, m = nx*ny, n = m;
+   vector<unsigned> row_ptr(m+1,0), col_ind;
+   vector<double> val; // XXX: should preallocate col_ind and val
+
+   row_ptr[0] = 0;
+   for (unsigned ind = 0; ind < m; ++ind) {
+      row_ptr[ind+1] = row_ptr[ind];
+
+      if ( 0 <= ind && ind < nx ) { // on top
+         if ( ind % nx == 0 ) { // on left side
+            // we must have ind == 0, top-left
+
+            row_ptr[ind+1] += 4;
+            col_ind.insert(col_ind.end(), {ind, ind+1, ind+nx, ind+nx+1});
+            val.insert(val.end(), {8., -1., -1., -1.});
+         }
+
+         else if ( (ind + 1) % nx == 0) { // on right side
+            // we must have ind == n-1, top-right
+         
+            row_ptr[ind+1] += 4;
+            col_ind.insert(col_ind.end(), {ind-1, ind, ind+nx-1, ind+nx});
+            val.insert(val.end(), {-1., 8., -1., -1.});
+         }
+
+         else { // in the middle
+
+            row_ptr[ind+1] += 6;
+            col_ind.insert(col_ind.end(),
+                  {ind-1, ind, ind+1, ind+nx-1, ind+nx, ind+nx+1});
+            val.insert(val.end(), {-1., 8., -1., -1., -1., -1.});
+         }
+      }
+
+      else if ( (nx <= ind) && (ind < (ny-1)*nx) ) { // in the middle rows
+         if ( ind % nx == 0 ) { // on left side
+            
+            row_ptr[ind+1] += 6;
+            col_ind.insert(col_ind.end(), 
+                  {ind-nx, ind-nx+1, ind, ind+1, ind+nx, ind+nx+1});
+            val.insert(val.end(), {-1., -1., 8., -1., -1., -1.});
+         }
+
+         else if ( (ind + 1) % nx == 0 ) { // on right side
+
+            row_ptr[ind+1] += 6;
+            col_ind.insert(col_ind.end(), 
+                  {ind-nx-1,ind-nx, ind-1, ind, ind+nx-1, ind+nx});
+            val.insert(val.end(), {-1., -1., -1., 8., -1., -1.});
+         }
+
+         else { // in middle
+
+            row_ptr[ind+1] += 9;
+            col_ind.insert(col_ind.end(), {ind-nx-1, ind-nx, ind-nx+1, 
+                                           ind-1, ind, ind+1,
+                                           ind+nx-1, ind+nx, ind+nx+1});
+            val.insert(val.end(), {-1., -1., -1.,
+                                   -1., 8. , -1.,
+                                   -1., -1., -1.});
+         }
+      }
+
+      else { // in bottom row
+         if ( ind % nx == 0 ) { // on left side
+            
+            row_ptr[ind+1] += 4;
+            col_ind.insert(col_ind.end(), {ind-nx, ind-nx+1, ind, ind+1});
+            val.insert(val.end(), {-1., -1., 8., -1.});
+         }
+
+         else if ( (ind + 1) % nx == 0 ) { // on right side
+
+            row_ptr[ind+1] += 4;
+            col_ind.insert(col_ind.end(), {ind-nx-1, ind-nx, ind-1, ind});
+            val.insert(val.end(), {-1., -1., -1., 8.});
+         }
+
+         else { // in the middle
+
+            row_ptr[ind+1] += 6;
+            col_ind.insert(col_ind.end(), 
+                  {ind-nx-1, ind-nx, ind-nx+1, ind-1, ind, ind+1});
+            val.insert(val.end(), {-1., -1., -1., -1., 8., -1.});
+         }
+      }
+   }
+
+   return matrix_crs<double>(row_ptr, col_ind, val, m, n, 1);
+// }}}
+}
+
+void fig8_4(void) {
+// {{{
+// 
+// Attempt to reproduce the coarsening from Figure 8.4 of MG Tutorial
+// NOTE: In image_seg.cpp:coarsen_AMG, you should change the strong dependance
+// to max_element instead of row_sum
+
+   seg_params params;
+   set_params(params, 0., 0., 0., 0.1, 0.1, 0, 0, 0);
+
+   list<image_level> levels(1);
+   auto it = levels.begin();
+   it->A = lap9(3);
+
+   it->Gamma = valarray<double>(INFINITY, it->A.m);
+   vector<unsigned> C = coarsen_AMG(it, params);
+
+   cout << "C = " << endl;
+   print_vector(C);
+
+// }}}
+}
 
 int main() {
   
@@ -1190,6 +1312,7 @@ int main() {
    //test_coo_scalar();
    //test_coo_add();
 
+
    // CRS
    //test_crs_matrix();
    //test_crs_eye();
@@ -1198,16 +1321,19 @@ int main() {
    //test_crs_add();
    //test_crs_kron();
    //test_crs_matvec();
-   test_crs_matmat();
-   
+   //test_crs_matmat();
+
+
    // Model problems
    //test_model_problems();
+
 
    // Classical solvers
    //test_wjacobi();
    //test_gauss_seidel();
    //test_rbgauss_seidel();
-   
+
+
    // Multigrid
    //test_mg_1d_intergrid_operators();
    //test_mg_2d_intergrid_operators();
@@ -1217,6 +1343,12 @@ int main() {
 
    //test_mg_1d_fmg();
    //test_mg_2d_fmg();
+
+
+   // coarsen_AMG
+   //fig8_4(); // NOTE: you must change a few things in 
+               // image_seg.cpp:coarsen_AMG and friends
+               // for this to work
 
    return 0;
 }

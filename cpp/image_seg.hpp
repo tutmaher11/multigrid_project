@@ -191,5 +191,4 @@ void write_seg_images(const cv::Mat& img, const matrix_crs<double>& U,
 
 // }}}
 
-
 #endif

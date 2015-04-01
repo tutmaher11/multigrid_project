@@ -20,6 +20,7 @@ void build_first_level(const valarray<double>& I, const seg_params& params,
 
    // variance (init to zeros)
    it->S = zeros<double>(I.size(), 1); // TODO: should this be M x M or M x 1?  Ingris 2010 seems contradictory
+   //it->S = zeros<double>(I.size(), I.size());
  
    // weighted boundary length
    build_L(it, params);
@@ -53,7 +54,7 @@ matrix_crs<double> build_A1(const valarray<double>& I,
 // 15  16  17  18  19
 // 20  21  22  23  24
 //
-// TODO: can call std::vector::insert with an initializer list
+// NOTE: can call std::vector::insert with an initializer list
 
    unsigned n = params.n;
    double a = params.alpha;
@@ -696,6 +697,7 @@ void rescale_coarse_coupling(matrix_crs<double>& A,
             A.val[jp] *= exp(-b*nrm);
 
             //cout << "(i,j) = " << "(" << i << "," << j << ")  nrm = " << nrm << endl;
+            //if ( i == 1 ) exit(-1);
          } 
       }
 
@@ -791,7 +793,7 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
    //next(it)->V.clean();
 
    // coarse-level boundary length matrices
-   // TODO: I think we only need the diagonal of L,G
+   // XXX: I think we only need the diagonal of L,G
    build_L(next(it), params);
    build_G(next(it), params);
    //next(it)->L.clean();
@@ -861,7 +863,6 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
 
 // Graph Coarsening
 ///////////////////
-// XXX: I don't know if this is right!
 vector<unsigned> coarsen_AMG(const list<image_level>::iterator it, 
       const seg_params& params) {
 // {{{
@@ -917,6 +918,7 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
    }
 
    matrix_crs<double> A_bar(row_ptr, col_ind, val, M, M, 1);
+   matrix_crs<double> A_bar_trans = transpose(A_bar);
    row_ptr.resize(0);
    col_ind.resize(0);
    val.resize(0);
@@ -977,9 +979,13 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
       T[j] = 1;
       lambda[j] = 0;
 
-      vector<unsigned> K = strongly_influenced_by_j(A_bar, T, j);
+      //vector<unsigned> K = strongly_influenced_by_j(A_bar, T, j);
+      vector<unsigned> K = strongly_influenced_by_j_trans(A_bar_trans, T, j);
 
       //cout << "K = " << endl;
+      //print_vector(K);
+
+      //cout << "K (via A_bar_trans) = " << endl;
       //print_vector(K);
 
       vector<unsigned> H;
@@ -998,7 +1004,7 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
    // Assign C-points
    vector<unsigned> C;
    for (unsigned i = 0; i < T.size(); ++i) {
-      if ( T[i] == 1 ) C.push_back(i); // TODO valgrind shows this (maybe!) as uninitialized and gives an error message
+      if ( T[i] == 1 ) C.push_back(i); // XXX: valgrind shows this (maybe!) as uninitialized and gives an error message
    }
 
    if ( C.size() == 0 ) {
@@ -1017,7 +1023,7 @@ vector<unsigned> strongly_influenced_by_j(const matrix_crs<double>& A_bar,
 // K is the set of nodes k such that T[k] == 0 and A_bar[k,j] > 0
 // Such nodes are strongly influenced by node j
 //
-// XXX: This is slow in CRS.  I don't think A_bar is symmetric
+// TODO: This is slow in CRS.  I don't think A_bar is symmetric
 
    vector<unsigned> K;
 
@@ -1063,6 +1069,31 @@ vector<unsigned> strongly_influenced_by_j(const matrix_crs<double>& A_bar,
    return K;
 // }}}
 }
+
+vector<unsigned> strongly_influenced_by_j_trans(const matrix_crs<double>& A_bar_trans,
+      const vector<unsigned>& T, const unsigned j) {
+// {{{
+// K is the set of nodes k such that T[k] == 0 and A_bar_trans[j,k] > 0
+// Such nodes are strongly influenced by node j
+//
+// This should give the same result as strongly_influenced_by_j, but should 
+// be considerably more efficient
+
+   vector<unsigned> K;
+
+   // Look down rows of transpose(A_bar)
+   for (unsigned kp = A_bar_trans.row_ptr[j]; kp < A_bar_trans.row_ptr[j+1]; ++kp) {
+      unsigned k = A_bar_trans.col_ind[kp];
+
+      if ( T[k] == 0 && A_bar_trans.val[kp] > 0 ) {
+         K.push_back(k);
+      }
+   }
+   
+   return K;
+// }}}
+}
+
 
 vector<unsigned> strongly_influence_k(const matrix_crs<double>& A_bar,
       const vector<unsigned>& T, const unsigned k) {
@@ -1478,10 +1509,10 @@ int main(void) {
 
    // Checker Disk
    ///////////////
-   img = load_image("test_imgs/checker_disk_60.png");
-   set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1); // Inglis et al.'s parameters
-   U = image_seg(img, params);
-   write_seg_images(img, U, "gen_imgs/checker_disk_60", 1);
+   //img = load_image("test_imgs/checker_disk_60.png");
+   //set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1); // Inglis et al.'s parameters
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/checker_disk_60", 1);
  
    // Blob
    /////////
@@ -1504,7 +1535,7 @@ int main(void) {
   
    // Peppers
    //////////
-   //set_params(params, 50., 4., 15., 0.10, 0.15, 0.15, 5, 1);
+   set_params(params, 50., 4., 15., 0.10, 0.15, 0.15, 5, 1);
    //img = load_image("test_imgs/peppers_25.jpg");
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/peppers_25", 1);
@@ -1517,9 +1548,9 @@ int main(void) {
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/peppers_100", 1);
 
-   //img = load_image("test_imgs/peppers.jpg");
-   //U = image_seg(img, params);
-   //write_seg_images(img, U, "gen_imgs/peppers", 1);
+   img = load_image("test_imgs/peppers.jpg");
+   U = image_seg(img, params);
+   write_seg_images(img, U, "gen_imgs/peppers", 1);
 
    return 0;
 }

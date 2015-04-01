@@ -145,6 +145,9 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
 vector<unsigned> strongly_influenced_by_j(const matrix_crs<double>& A_bar,
       const vector<unsigned>& T, const unsigned j);
 
+vector<unsigned> strongly_influenced_by_j_trans(const matrix_crs<double>& A_bar_trans,
+      const vector<unsigned>& T, const unsigned j);
+
 vector<unsigned> strongly_influence_k(const matrix_crs<double>& A_bar,
       const vector<unsigned>& T, const unsigned k);
 

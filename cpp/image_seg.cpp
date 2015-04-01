@@ -1477,80 +1477,80 @@ int main(void) {
 
    // Easy test cases
    //////////////////
-   //img = load_image("test_imgs/square.png");
+   //img = load_image("../test_imgs/square.png");
    //set_params(params, 10., 5., 10., 0.1, 0.15, 0.15, 2, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/square", 1);
 
-   //img = load_image("test_imgs/square_inv.png");
+   //img = load_image("../test_imgs/square_inv.png");
    //set_params(params, 10., 5., 10., 0.1, 0.15, 0.15, 2, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/square_inv", 1);
 
-   //img = load_image("test_imgs/arrow_5.png");
+   //img = load_image("../test_imgs/arrow_5.png");
    //set_params(params, 10., 10., 100., 0.1, 0.1, 0.15, 1, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/arrow_5", 1);
  
-   //img = load_image("test_imgs/squares.png");
+   //img = load_image("../test_imgs/squares.png");
    //set_params(params, 10., 5., 100., 0.1, 0.1, 0.15, 1, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/squares", 1);
 
-   //img = load_image("test_imgs/E_25.png");
+   //img = load_image("../test_imgs/E_25.png");
    //set_params(params, 10., 5., 100., 0.1, 0.1, 0.15, 1, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/E", 1);
 
-   //img = load_image("test_imgs/arrow_25.png");
+   //img = load_image("../test_imgs/arrow_25.png");
    //set_params(params, 10, 5., 100., 0.1, 0.1, 0.15, 3, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/arrow_25", 1);
 
    // Checker Disk
    ///////////////
-   //img = load_image("test_imgs/checker_disk_60.png");
-   //set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1); // Inglis et al.'s parameters
-   //U = image_seg(img, params);
-   //write_seg_images(img, U, "gen_imgs/checker_disk_60", 1);
+   img = load_image("../test_imgs/checker_disk_60.png");
+   set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1); // Inglis et al.'s parameters
+   U = image_seg(img, params);
+   write_seg_images(img, U, "gen_imgs/checker_disk_60", 1);
  
    // Blob
    /////////
-   //img = load_image("test_imgs/blob_64.png");
+   //img = load_image("../test_imgs/blob_64.png");
    //set_params(params, 10., 1., 100.*0., 0.05, 0.10, 0.15, 5, 2);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/blob_64", 1);
  
-   //img = load_image("test_imgs/blob_128.png");
+   //img = load_image("../test_imgs/blob_128.png");
    //set_params(params, 10., 3., 10., 0.10, 0.10, 0.15, 5, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/blob_128", 1);
  
    // Spiral
    /////////
-   //img = load_image("test_imgs/spiral_64.png");
+   //img = load_image("../test_imgs/spiral_64.png");
    //set_params(params, 10., 1., 10., 0.05, 0.10, 0.15, 5, 2);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/spiral_64", 1);
   
    // Peppers
    //////////
-   set_params(params, 50., 4., 15., 0.10, 0.15, 0.15, 5, 1);
-   //img = load_image("test_imgs/peppers_25.jpg");
+   //set_params(params, 50., 4., 15., 0.10, 0.15, 0.15, 5, 1);
+   //img = load_image("../test_imgs/peppers_25.jpg");
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/peppers_25", 1);
 
-   //img = load_image("test_imgs/peppers_50.jpg");
+   //img = load_image("../test_imgs/peppers_50.jpg");
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/peppers_50", 1);
 
-   //img = load_image("test_imgs/peppers_100.jpg");
+   //img = load_image("../test_imgs/peppers_100.jpg");
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/peppers_100", 1);
 
-   img = load_image("test_imgs/peppers.jpg");
-   U = image_seg(img, params);
-   write_seg_images(img, U, "gen_imgs/peppers", 1);
+   //img = load_image("../test_imgs/peppers.jpg");
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/peppers", 1);
 
    return 0;
 }

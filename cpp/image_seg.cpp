@@ -19,7 +19,7 @@ void build_first_level(const valarray<double>& I, const seg_params& params,
    it->A = build_A1(I, params);
 
    // variance (init to zeros)
-   it->S = zeros<double>(I.size(), I.size());
+   it->S = zeros<double>(I.size(), 1); // TODO: should this be M x M or M x 1?  Ingris 2010 seems contradictory
  
    // weighted boundary length
    build_L(it, params);
@@ -543,7 +543,6 @@ matrix_crs<double> build_scaled_interp(const matrix_crs<double>& P) {
 //  col_sums = sum(P,1); Pt = P; for j in 1:size(Pt,2); Pt[:,j] /= col_sums[j]; end
 //
 
-
    matrix_crs<double> Ptil = P;
    vector<double> col_sums(P.n,0.);
 
@@ -556,7 +555,6 @@ matrix_crs<double> build_scaled_interp(const matrix_crs<double>& P) {
    // compute column sums
    for (unsigned i = 0; i < P.m; ++i) {
       for (unsigned jp = P.row_ptr[i]; jp < P.row_ptr[i+1]; ++jp) {
-         //cout << "set col = " << P.col_ind[jp] << endl;
          col_sums[P.col_ind[jp]] += P.val[jp];
       }
    }
@@ -564,7 +562,6 @@ matrix_crs<double> build_scaled_interp(const matrix_crs<double>& P) {
    // scale columns of P by col_sums to form Ptil
    for (unsigned i = 0; i < Ptil.m; ++i) {
       for (unsigned jp = Ptil.row_ptr[i]; jp < Ptil.row_ptr[i+1]; ++jp) {
-         //cout << "requested col = " << Ptil.col_ind[jp] << endl; 
          Ptil.val[jp] /= col_sums[Ptil.col_ind[jp]];
       }
    }
@@ -582,9 +579,15 @@ matrix_crs<double> coarse_variance(const matrix_crs<double>& Sf,
 // {{{
 // Build the coarse-level variance matrix S by concatenating the restricted
 // fine-level variance matrix Sf and coarse-level variance vector Sc
+//
   
    // copy fine-level variance matrix
    matrix_crs<double> S = Sf;
+
+   //cout << "Sf = " << endl;
+   //Sf.print_full();
+   //cout << "Sc = " << endl;
+   //print_vector(Sc);
 
    // Append the contents of Sc to the right-side of S
    unsigned num_added = 0;
@@ -592,17 +595,24 @@ matrix_crs<double> coarse_variance(const matrix_crs<double>& Sf,
       // We don't want to append a bunch of zeros (Sc usually has some, 
       // at least on the first level)
       if ( Sc[i] != 0. ) {
-         S.col_ind.insert(S.col_ind.begin() + S.row_ptr[i+1], S.n);
-         S.val.insert(S.val.begin() + S.row_ptr[i+1], Sc[i]);
+         //S.col_ind.insert(S.col_ind.begin() + S.row_ptr[i+1], S.n);
+         S.col_ind.insert(S.col_ind.begin() + S.row_ptr[i+1] + num_added, S.n);
+         //S.val.insert(S.val.begin() + S.row_ptr[i+1],  Sc[i]);
+         S.val.insert(S.val.begin() + S.row_ptr[i+1] + num_added, Sc[i]);
          ++num_added;
          
-         S.row_ptr[i+1] += num_added;
       }
-      else continue;
+      
+      S.row_ptr[i+1] += num_added;
    }
 
    // Adjust size of S
    ++S.n;
+
+   //cout << "S = " << endl;
+   //S.print_full();
+
+   //exit(-1);
 
    return S;
 // }}}
@@ -628,6 +638,9 @@ void rescale_coarse_coupling(matrix_crs<double>& A,
       //cout << "S = " << endl;
       //next(it)->S.print_full();
 
+      //cout << "S->row_ptr = " << endl;
+      //print_vector(S->row_ptr);
+
       for (unsigned i = 0; i < A.m; ++i) {
          
          double Ii = next(it)->I[i];
@@ -646,25 +659,43 @@ void rescale_coarse_coupling(matrix_crs<double>& A,
             unsigned sjp = S->row_ptr[j];
             unsigned sjp_end = S->row_ptr[j+1];
 
-            // XXX: this norm computation is not scaled like dnrm2
+            //cout << S->row_ptr[j] << "  " << S->row_ptr[j+1] << endl;
+
+            //cout << "S[i,:] = " << endl;
+            //for (unsigned p = sip; p < sip_end; ++p) {
+            //   cout << S->val[p] << "  ";
+            //}
+            //cout << endl;
+
+            //cout << "S[j,:] = " << endl;
+            //for (unsigned p = sjp; p < sjp_end; ++p) {
+            //   cout << S->val[p] << "  ";
+            //}
+            //cout << endl;
+ 
             double nrm = 0.;
-            while ( sip < sip_end && sjp < sjp_end ) {
-               if ( S->col_ind[sip] < S->col_ind[sjp] ) {
-                  nrm += (S->val[sip]) * (S->val[sip]);
+            while ( sip < sip_end || sjp < sjp_end ) {
+               if ( sjp >= sjp_end || (sip < sip_end && S->col_ind[sip] < S->col_ind[sjp]) ) {
+                  //nrm += (S->val[sip]) * (S->val[sip]);
+                  nrm += pow(S->val[sip], 2.);
                   ++sip;
                }
-               else if ( S->col_ind[sjp] < S->col_ind[sip] ) {
-                  nrm += (S->val[sjp]) * (S->val[sjp]);
+               else if ( sip >= sip_end || (sjp < sjp_end && S->col_ind[sjp] < S->col_ind[sip]) ) {
+                  //nrm += (S->val[sjp]) * (S->val[sjp]);
+                  nrm += pow(S->val[sjp], 2.);
                   ++sjp;
                }
                else {
-                  nrm += (S->val[sip]-S->val[sjp]) * (S->val[sip]-S->val[sjp]);
+                  //nrm += (S->val[sip]-S->val[sjp]) * (S->val[sip]-S->val[sjp]);
+                  nrm += pow(S->val[sip]-S->val[sjp], 2.);
                   ++sip; ++sjp;
                }
             }
             nrm = sqrt(nrm);
             
             A.val[jp] *= exp(-b*nrm);
+
+            //cout << "(i,j) = " << "(" << i << "," << j << ")  nrm = " << nrm << endl;
          } 
       }
 
@@ -737,7 +768,7 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
    matrix_crs<double> Ptil_trans = transpose(Ptil);
 
    // coarse-level intensity vector
-   next(it)->I = Ptil_trans*it->I;
+   next(it)->I = Ptil_trans*(it->I);
 
    // coarse-level variance
    valarray<double> I2 = (it->I)*(it->I);
@@ -745,8 +776,8 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
    next(it)->S = coarse_variance(Ptil_trans*(it->S), Ptil_trans*I2 - nextI2);
 
    // coarse-level coupling matrix
-   next(it)->A = (it->A)*P;
-   next(it)->A = P_trans*(next(it)->A);
+   next(it)->A = P_trans*(it->A)*P;
+   //next(it)->A.clean();
    rescale_coarse_coupling(next(it)->A, it, l_next, params);
 
    //matrix_crs<double> Z = next(it)->A - transpose(next(it)->A);
@@ -756,21 +787,27 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
 
    // coarse-level area matrices
    // W = next(it)->A;
-   next(it)->V = (it->V)*P;
-   next(it)->V = P_trans*(next(it)->V);
+   next(it)->V = P_trans*(it->V)*P;
+   //next(it)->V.clean();
 
    // coarse-level boundary length matrices
    // TODO: I think we only need the diagonal of L,G
    build_L(next(it), params);
    build_G(next(it), params);
+   //next(it)->L.clean();
+   //next(it)->G.clean();
 
    // Build new saliency vector
-   next(it)->Gamma.resize(M_next,0.);
    valarray<double> diagL = diag(next(it)->L);
    valarray<double> diagV = diag(next(it)->V);
    valarray<double> diagG = diag(next(it)->G);
    valarray<double> diagW = diag(next(it)->A);
 
+   //cout << "L = " << endl;
+   //cout << next(it)->L << endl;
+   //print_vector(diagL);
+
+   next(it)->Gamma.resize(M_next,0.);
    double tmp = 0.;
    for (unsigned i = 0; i < M_next; ++i) {
       tmp = (diagL[i]/diagG[i]) / (diagW[i]/diagV[i]);
@@ -849,9 +886,13 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
          }
       }
 
-      // XXX untested, but we're not using it
-      //double max_elem = *max_element(it->A.row_ptr.begin() + it->A.row_ptr[i],
-      //      it->A.row_ptr.begin() + it->A.row_ptr[i+1]);
+      // Use max off-diagonal element, instead of row_sum 
+      //double max_elem = -static_cast<double>(INFINITY);
+      //for (unsigned jp = it->A.row_ptr[i]; jp < it->A.row_ptr[i+1]; ++jp) {
+      //   if ( it->A.col_ind[jp] != i && it->A.val[jp] > max_elem ) {
+      //      max_elem = it->A.val[jp];
+      //   }
+      //}
 
       // XXX: Testing coarsen_AMG via test.cpp:fig8_4
       //double min_elem = *min_element(it->A.row_ptr.begin() + it->A.row_ptr[i],
@@ -863,6 +904,7 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
          double Aij = it->A.val[jp];
 
          if ( j != i && Aij >= params.theta*row_sum ) {
+         //if ( j != i && Aij >= params.theta*max_elem ) {
          //if ( j != i && -Aij >= -params.theta*min_elem ) { // XXX: Testing coarsen_AMG via test.cpp:fig8_4
             ++row_ptr[i+1];
             col_ind.push_back(j);
@@ -975,43 +1017,44 @@ vector<unsigned> strongly_influenced_by_j(const matrix_crs<double>& A_bar,
 // K is the set of nodes k such that T[k] == 0 and A_bar[k,j] > 0
 // Such nodes are strongly influenced by node j
 //
+// XXX: This is slow in CRS.  I don't think A_bar is symmetric
 
    vector<unsigned> K;
 
    // Look down columns (which is slow in CRS!)
    // We check if T_k == 0 first, because that is much cheaper than 
    // checking if A_bar[k,j] > 0 (think "constraint propagation")
-   // NOTE: if done this way, this produces a bottleneck in the code
    for (unsigned k = 0; k < A_bar.m; ++k) {
 
       if ( T[k] != 0 ) continue;
 
       // we now know T[k] == 0, so check if A_bar[k,j] > 0
       
-      //for (unsigned cp = A_bar.row_ptr[k]; cp < A_bar.row_ptr[k+1]; ++cp) {
-      //   unsigned c = A_bar.col_ind[cp];
+      for (unsigned cp = A_bar.row_ptr[k]; cp < A_bar.row_ptr[k+1]; ++cp) {
+         unsigned c = A_bar.col_ind[cp];
 
-      //   if ( c < j ) continue;
-      //   else if ( c == j ) { // value exists at [k,j] in A_bar
-      //      if ( A_bar.val[cp] > 0 ) {
-      //         //cout << "[k,j] = [" << k << "," << j << "]" << endl;
-      //         K.push_back(k);
-      //         break;
-      //      }
-      //   }
-      //   else { // c > j, so value doesn't exist in matrix
-      //      break;
-      //   }
-      //}
-
-      auto it_cp = lower_bound(A_bar.col_ind.begin() + A_bar.row_ptr[k], A_bar.col_ind.begin() + A_bar.row_ptr[k+1], j);
-      unsigned c = *it_cp;
-      if ( it_cp != A_bar.col_ind.begin() + A_bar.row_ptr[k+1] && c == j && A_bar.val[distance(A_bar.col_ind.begin(), it_cp)] > 0 ) { // A_bar[k,j] > 0
-      //if ( it_cp != A_bar.col_ind.begin() + A_bar.row_ptr[k+1] && 
-      //      c == j && A_bar.val[distance(A_bar.col_ind.begin(), it_cp)] != 0. ) { // XXX: Testing coarsen_AMG via test.cpp:fig8_4
-
-         K.push_back(k);
+         if ( c < j ) continue;
+         else if ( c == j ) { // value exists at [k,j] in A_bar
+            if ( A_bar.val[cp] > 0 ) {
+               //cout << "[k,j] = [" << k << "," << j << "]" << endl;
+               K.push_back(k);
+               break;
+            }
+         }
+         else { // c > j, so value doesn't exist in matrix
+            break;
+         }
       }
+
+      // This is actually slower than the loop above
+      //auto it_cp = lower_bound(A_bar.col_ind.begin() + A_bar.row_ptr[k], A_bar.col_ind.begin() + A_bar.row_ptr[k+1], j);
+      //unsigned c = *it_cp;
+      //if ( it_cp != A_bar.col_ind.begin() + A_bar.row_ptr[k+1] && c == j && A_bar.val[distance(A_bar.col_ind.begin(), it_cp)] > 0. ) { // A_bar[k,j] > 0
+      ////if ( it_cp != A_bar.col_ind.begin() + A_bar.row_ptr[k+1] && 
+      ////      c == j && A_bar.val[distance(A_bar.col_ind.begin(), it_cp)] != 0. ) { // XXX: Testing coarsen_AMG via test.cpp:fig8_4
+
+      //   K.push_back(k);
+      //}
    }
 
    //cout << "K = " << endl;
@@ -1034,7 +1077,7 @@ vector<unsigned> strongly_influence_k(const matrix_crs<double>& A_bar,
    for (unsigned hp = A_bar.row_ptr[k]; hp < A_bar.row_ptr[k+1]; ++hp) {
       unsigned h = A_bar.col_ind[hp];
 
-      if ( T[h] == 0 && A_bar.val[hp] > 0 ) {
+      if ( T[h] == 0 && A_bar.val[hp] > 0. ) {
       //if ( T[h] == 0 && A_bar.val[hp] != 0. ) { // XXX: Testing coarsen_AMG via test.cpp:fig8_4
          //cout << "[k,h] = [" << k << "," << h << "]" << endl;
          H.push_back(h);
@@ -1414,19 +1457,19 @@ int main(void) {
    //write_seg_images(img, U, "gen_imgs/square_inv", 1);
 
    //img = load_image("test_imgs/arrow_5.png");
-   //set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 2, 1);
+   //set_params(params, 10., 10., 100., 0.1, 0.1, 0.15, 1, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/arrow_5", 1);
  
    //img = load_image("test_imgs/squares.png");
-   //set_params(params, 100., 100., 100., 0.1, 0.1, 0.15, 3, 1);
+   //set_params(params, 10., 5., 100., 0.1, 0.1, 0.15, 1, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/squares", 1);
 
-   img = load_image("test_imgs/E_25.png");
-   set_params(params, 100., 100., 100., 0.1, 0.1, 0.15, 5, 1);
-   U = image_seg(img, params);
-   write_seg_images(img, U, "gen_imgs/E", 1);
+   //img = load_image("test_imgs/E_25.png");
+   //set_params(params, 10., 5., 100., 0.1, 0.1, 0.15, 1, 1);
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/E", 1);
 
    //img = load_image("test_imgs/arrow_25.png");
    //set_params(params, 10, 5., 100., 0.1, 0.1, 0.15, 3, 1);
@@ -1435,61 +1478,48 @@ int main(void) {
 
    // Checker Disk
    ///////////////
-   //img = load_image("test_imgs/checker_disk_60.png");
-   //set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1);
-   //U = image_seg(img, params);
-   //write_seg_images(img, U, "gen_imgs/checker_disk_60", 1);
+   img = load_image("test_imgs/checker_disk_60.png");
+   set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1); // Inglis et al.'s parameters
+   U = image_seg(img, params);
+   write_seg_images(img, U, "gen_imgs/checker_disk_60", 1);
  
    // Blob
    /////////
    //img = load_image("test_imgs/blob_64.png");
-   ////// This parameter set finds the two main segments, but a few additional
-   ////// outliers/boundary segments which we don't want
-   ////set_params(params, 10., 1., 100., 0.05, 0.10, 0.15, 5, 2);
-   //set_params(params, 5., 1., 100., 0.03, 0.08, 0.15, 5, 2);
+   //set_params(params, 10., 1., 100.*0., 0.05, 0.10, 0.15, 5, 2);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/blob_64", 1);
  
    //img = load_image("test_imgs/blob_128.png");
-   //set_params(params, 10., 1., 10., 0.1, 0.1, 0.15, 5, 1);
+   //set_params(params, 10., 3., 10., 0.10, 0.10, 0.15, 5, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/blob_128", 1);
  
    // Spiral
    /////////
    //img = load_image("test_imgs/spiral_64.png");
-   ////// This parameter set finds the two main segments, but like 70 additional
-   ////// outliers/boundary segments which we don't want
-   ////set_params(params, 10., 1., 100., 0.1, 0.15, 0.15, 5, 1);
-   //set_params(params, 10., 1., 100., 0.05, 0.10, 0.15, 5, 2);
+   //set_params(params, 10., 1., 10., 0.05, 0.10, 0.15, 5, 2);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/spiral_64", 1);
   
    // Peppers
    //////////
+   //set_params(params, 50., 4., 15., 0.10, 0.15, 0.15, 5, 1);
    //img = load_image("test_imgs/peppers_25.jpg");
-   //// This set finds 7 segments: it gets the three peppers and background,
-   //// but also finds some outliers
-   //set_params(params, 8., 4., 100., 0.05, 0.15, 0.15, 4, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/peppers_25", 1);
 
    //img = load_image("test_imgs/peppers_50.jpg");
-   //set_params(params, 8., 4., 100., 0.03, 0.05, 0.15, 3, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/peppers_50", 1);
 
    //img = load_image("test_imgs/peppers_100.jpg");
-   //set_params(params, 8., 4., 100., 0.05, 0.05, 0.15, 5, 1);
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/peppers_100", 1);
 
    //img = load_image("test_imgs/peppers.jpg");
-   //set_params(params, 8., 4., 100., 0.05, 0.05, 0.15, 5, 1);
    //U = image_seg(img, params);
-   //cout << "writing segments" << endl;
    //write_seg_images(img, U, "gen_imgs/peppers", 1);
-
 
    return 0;
 }

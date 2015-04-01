@@ -463,7 +463,6 @@ matrix_crs<T> transpose(const matrix_crs<T>& A) {
    matrix_crs<T> At;
    transpose(At,A);
    return At;
-   //return matrix_crs<T>(At.row_ptr, At.col_ind, At.val, At.m, At.n, 1);
 }
 
 

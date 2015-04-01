@@ -338,8 +338,8 @@ void test_crs_eye(void) {
 
 void test_crs_transpose(void) {
    // {{{
-   matrix_crs<double> A = rand_crs_rand_size<double>();
-   //matrix_crs<double> A = rand_crs<double>(5,3);
+   //matrix_crs<double> A = rand_crs_rand_size<double>();
+   matrix_crs<double> A = rand_crs<double>(5,5);
 
    cout << "A = " << endl;
    A.print_full();
@@ -349,7 +349,10 @@ void test_crs_transpose(void) {
    //transpose(At,A);
    //At.print_full();
    transpose(A).print_full();
-   
+  
+   matrix_crs<double> Z = A-transpose(transpose(A));
+   cout << "A - (A^T)^T = " << endl;
+   cout << Z << endl;
    // }}}
 }
 
@@ -493,6 +496,31 @@ void test_crs_matmat1(void) {
    matrix_crs<double> C = A*B;
    cout << "C = " << endl;
    C.print_full();
+   
+   // }}}
+}
+
+void test_crs_matmat2(void) {
+   // {{{
+   unsigned p = 5, q = 6, r = 3, s = 2;
+   matrix_crs<double> A = rand_crs<double>(p,q);
+   matrix_crs<double> B = rand_crs<double>(q,r);
+   matrix_crs<double> C = rand_crs<double>(r,s);
+
+   cout << "A = " << endl;
+   A.print_full();
+
+   cout << "B = " << endl;
+   B.print_full();
+  
+   cout << "C = " << endl;
+   C.print_full();
+
+   matrix_crs<double> D1 = A*B*C;
+   matrix_crs<double> D2 = A*B; D2 = D2*C;
+
+   cout << "A*B*C - (A*B)*C = " << endl;
+   cout << D1-D2 << endl;
    
    // }}}
 }
@@ -1349,8 +1377,9 @@ int main() {
    //test_crs_add();
    //test_crs_kron();
    //test_crs_matvec();
-   test_crs_matmat();
+   //test_crs_matmat();
    //test_crs_matmat1(); // this exposed a bug in the 2-element swap in sort_inds()
+   //test_crs_matmat2();
 
 
    // Model problems

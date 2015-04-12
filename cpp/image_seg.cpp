@@ -1182,7 +1182,11 @@ valarray<double> image_to_intensity(cv::Mat img, seg_params& params) {
 // The entries of the vector are the entries of the image matrix sorted
 // row-wise
    valarray<double> I(0., img.rows*img.cols);
-   
+  
+   // Get the max pixel value of the image so we can rescale [0,1]
+   double minval, maxval;
+   cv::minMaxLoc(img, &minval, &maxval);
+
    // Set the size of the image in the parameters class
    // We'll use it later to build A on the first level
    params.n = static_cast<unsigned>(img.rows);
@@ -1191,11 +1195,15 @@ valarray<double> image_to_intensity(cv::Mat img, seg_params& params) {
 
       const uchar* img_i = img.ptr<uchar>(i); // pointer to row i
       for (int j=0; j < img.cols; ++j) {
+         // Rachel pointed out that this is wrong
          // scale to [0,1] from range [0, 255] (uchar)
-         I[img.rows*i + j] = static_cast<double>( img_i[j] )/ UCHAR_MAX;
+         //I[img.rows*i + j] = static_cast<double>( img_i[j] )/ UCHAR_MAX;
+
+         // This should be the right scaling
+         I[img.rows*i + j] = static_cast<double>( img_i[j] ) / maxval;
       }
    }
-  
+ 
    return I;
 // }}}
 }
@@ -1346,7 +1354,6 @@ void write_seg_images(const cv::Mat& orig_img, const matrix_crs<double>& U,
 // }}}
 }
 
-
 // }}}
 
 
@@ -1390,10 +1397,10 @@ int main(void) {
 
    // Checker Disk
    ///////////////
-   //img = load_image("../test_imgs/checker_disk_60.png");
-   //set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1); // Inglis et al.'s parameters
-   //U = image_seg(img, params);
-   //write_seg_images(img, U, "gen_imgs/checker_disk_60", 1);
+   img = load_image("../test_imgs/checker_disk_60.png");
+   set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1); // Inglis et al.'s parameters
+   U = image_seg(img, params);
+   write_seg_images(img, U, "gen_imgs/checker_disk_60", 1);
  
    // Blob
    /////////
@@ -1429,9 +1436,9 @@ int main(void) {
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/peppers_100", 1);
 
-   img = load_image("../test_imgs/peppers.jpg");
-   U = image_seg(img, params);
-   write_seg_images(img, U, "gen_imgs/peppers", 1);
+   //img = load_image("../test_imgs/peppers.jpg");
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/peppers", 1);
 
    return 0;
 }

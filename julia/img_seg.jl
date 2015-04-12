@@ -237,53 +237,51 @@ function img_seg_Driver(img,alpha,atil,beta,theta,gamma,d1,sigma,rho)
   end
 
   # A is the level 1 coupling matrix; only assign weights if nodes i and j are horizontal or vertical neighbors
+
   A = zeros(M,M)
-  for i=1:M
-    for j=1:M
-      if (abs(i-j) == 1 && ( (mod(i,sqrt(M)) != 0 || j != i+1 ) && (mod(j,sqrt(M)) != 0 || i != j+1)) || abs(i-j) == sqrt(M) )
-        A[i,j] = exp(-alpha*abs(I[i] - I[j]))
-      end
+  for i=2:M
+    if mod(i-1,sqrt(M)) != 0
+      A[i-1,i] = exp(-alpha*abs(I[i-1] - I[i]))
+      A[i,i-1] = A[i-1,i]
     end
   end
+  for i=sqrt(M)+1:M
+      A[i-sqrt(M),i] = exp(-alpha*abs(I[i-sqrt(M)] - I[i]))
+      A[i,i-sqrt(M)] = A[i-sqrt(M),i]
+  end
+
   A = sparse(A)
 
   # S is the variance matrix
   S = zeros(M,1)
 
   # L is the weighted boundary length matrix (graph Laplacian)
-  L = zeros(M,M)
+  L = -A
   Arsum = [sum(A[i,:]) - A[i,i] for i=1:M]
   for i=1:M
-    for j=1:M
-      if i==j
-        L[i,j] = Arsum[i]
-      else
-        L[i,j] = -A[i,j]
-      end
-    end
+    L[i,i] = Arsum[i]
   end
 
   # V is the area matrix
   V = zeros(M,M)
-  for i=1:M
-    for j=1:M
-      if A[i,j] != 0
-        V[i,j] = 1
-      end
+  for i=2:M
+    if mod(i-1,sqrt(M)) != 0
+      V[i-1,i] = 1
+      V[i,i-1] = 1
     end
   end
+  for i=sqrt(M)+1:M
+      V[i-sqrt(M),i] = 1
+      V[i,i-sqrt(M)] = 1
+  end
+
+  V = sparse(V)
 
   # B is the boundary length matrix
-  B = zeros(M,M)
+  B = -V
   Vrsum = [sum(V[i,:]) - V[i,i] for i=1:M]
   for i=1:M
-    for j=1:M
-      if i==j
-        B[i,j] = Vrsum[i]
-      else
-        B[i,j] = -V[i,j]
-      end
-    end
+        B[i,i] = Vrsum[i]
   end
 
   # G is the saliency vector
@@ -356,6 +354,6 @@ function img_seg_proc(img,U)
 
 end
 
-img = imread("checker_disk_60.png")
+img = imread("peppers_50.jpg")
 U = img_seg_Driver(img,10,10,10,0.1,0.1,0.15,5,1)
 img_seg_proc(img,U)

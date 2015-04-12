@@ -1,2 +1,3 @@
+Currently works approximately as well as the last C++ version that I saw results from, including the same small segments on the pepper image. Is pretty slow, though. Next task is to speed up the code.
 
-Want to try doing this in Julia?
+Note that I’ve been running this from Juno, so some small modifications may be required to  run this from a command line.

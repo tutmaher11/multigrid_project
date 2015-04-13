@@ -107,21 +107,17 @@ function imageVCycle(l,M,I,A,S,V,G,gamma,theta,atil,rho,beta,d1,sigma)
 
   # set the interpolation matrix
   P = zeros(M,Mn)
+  counter = 1
+
   for i=1:M
     Anrsum = sum([A[i,C[k]] for k=1:Mn])
-    for j=1:Mn
-      if i in C
-        if i == C[j]
-          P[i,j] = 1
-        else
-          P[i,j] = 0
-        end
-      else
-        P[i,j] = A[i,C[j]] / Anrsum
-      end
+    if i in C
+      P[i,counter] = 1
+      counter += 1
+    else
+      P[i,:] = A[i,C[:]] / Anrsum
     end
   end
-
   P = sparse(P)
 
   # set the column-scaled interpolation matrix

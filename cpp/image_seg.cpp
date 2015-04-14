@@ -1200,10 +1200,13 @@ valarray<double> image_to_intensity(cv::Mat img, seg_params& params) {
          //I[img.rows*i + j] = static_cast<double>( img_i[j] )/ UCHAR_MAX;
 
          // This should be the right scaling
-         I[img.rows*i + j] = static_cast<double>( img_i[j] ) / maxval;
+         I[img.rows*i + j] = (static_cast<double>(img_i[j]) - minval)
+            / (maxval - minval);
       }
    }
- 
+
+   //cout << "max = " << *max_element(begin(I), end(I)) << endl;
+   //cout << "min = " << *min_element(begin(I), end(I)) << endl;
    return I;
 // }}}
 }
@@ -1397,10 +1400,23 @@ int main(void) {
 
    // Checker Disk
    ///////////////
+   // Inglis et al.'s parameters
+   set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1);
    img = load_image("../test_imgs/checker_disk_60.png");
-   set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1); // Inglis et al.'s parameters
    U = image_seg(img, params);
    write_seg_images(img, U, "gen_imgs/checker_disk_60", 1);
+ 
+   //img = load_image("../test_imgs/checker_disk_120.png");
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/checker_disk_120", 1);
+
+   // Checker Disk Larger
+   //////////////////////
+   // Inglis et al.'s parameters
+   //set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1);
+   //img = load_image("../test_imgs/checker_disk_larger_120.png");
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/checker_disk_larger_120", 1);
  
    // Blob
    /////////

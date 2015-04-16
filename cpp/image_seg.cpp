@@ -367,6 +367,8 @@ matrix_crs<double> build_interp(const matrix_crs<double>& A,
 //
 // It is assumed that C is sorted in increasing order; this should always
 // happen due to the construction of C by `coarsen_AMG`.
+//
+// TODO: this is a slower part of the code
 
    vector<unsigned> row_ptr(M+1,0), col_ind;
    vector<double> val;
@@ -402,6 +404,7 @@ matrix_crs<double> build_interp(const matrix_crs<double>& A,
          unsigned j = 0;
  
          double row_sum = 0.;
+         // TODO: using gcov, it looks like a lot of ``time'' is spent here
          while ( jp < A.row_ptr[i+1] && j < C.size() ) {
             if ( A.col_ind[jp] < C[j] ) ++jp;
             else if ( C[j] < A.col_ind[jp] ) ++j;
@@ -753,8 +756,6 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
 // {{{
 // Coarsen the graph using something similar to the "standard" AMG coarsener
 //
-// XXX: We spend a lot of time in the max_element calls.
-//
    unsigned M = it->A.m;
 
    vector<unsigned> row_ptr(M+1,0), col_ind;
@@ -819,6 +820,9 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
    vector<unsigned> Teqz; Teqz.reserve(M); // vector of indexes j where T[j] != 0.  
    // This is used for a performance optimization.  strongly_influence* can 
    // probably be optimized to use Teqz instead of just T, but that's a TODO
+   //
+   // In an earlier version of this optimization, it was actually slower to use
+   // a std::list than a vector.  Is this due to storage of all those 64-bit pointers?
 
    // if salient, designate as C node
    for (unsigned i = 0; i < M; ++i) {
@@ -839,6 +843,7 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
    while ( Teqz.size() > 0 ) {
 
       unsigned ml = 0;
+      Teqz_it = Teqz.begin(); // in case lambda is a vector of zeros
       for (auto it = Teqz.begin(); it != Teqz.end(); ++it) {
          if ( lambda[*it] > ml ) {
             Teqz_it = it;
@@ -1374,10 +1379,10 @@ int main(void) {
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/arrow_5", 1);
  
-   img = load_image("../test_imgs/squares.png");
-   set_params(params, 10., 5., 100., 0.1, 0.1, 0.15, 1, 1);
-   U = image_seg(img, params);
-   write_seg_images(img, U, "gen_imgs/squares", 1);
+   //img = load_image("../test_imgs/squares.png");
+   //set_params(params, 10., 5., 100., 0.1, 0.1, 0.15, 1, 1);
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/squares", 1);
 
    //img = load_image("../test_imgs/E_25.png");
    //set_params(params, 10., 5., 100., 0.1, 0.1, 0.15, 1, 1);
@@ -1406,6 +1411,7 @@ int main(void) {
    //////////////////////
    // Inglis et al.'s parameters
    //set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1);
+   //set_params(params, 12., 10., 10., 0.1, 0.1, 0.15, 5, 1); // a bit more contrast
    //img = load_image("../test_imgs/checker_disk_larger_120.png");
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/checker_disk_larger_120", 1);
@@ -1436,17 +1442,17 @@ int main(void) {
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/peppers_25", 1);
 
-   //img = load_image("../test_imgs/peppers_50.jpg");
-   //U = image_seg(img, params);
-   //write_seg_images(img, U, "gen_imgs/peppers_50", 1);
+   img = load_image("../test_imgs/peppers_50.jpg");
+   U = image_seg(img, params);
+   write_seg_images(img, U, "gen_imgs/peppers_50", 1);
 
    //img = load_image("../test_imgs/peppers_100.jpg");
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/peppers_100", 1);
 
-   img = load_image("../test_imgs/peppers.jpg");
-   U = image_seg(img, params);
-   write_seg_images(img, U, "gen_imgs/peppers", 1);
+   //img = load_image("../test_imgs/peppers.jpg");
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/peppers", 1);
 
    return 0;
 }

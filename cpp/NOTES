@@ -3,7 +3,7 @@
 
 TODO
 ====
-* Spurious segmentation for checkerd disk
+* Spurious segmentation for checkerd disk?
 
 * Our code finds some boundary segments for the large peppers images.  This could just be a parameter issue.
 

@@ -811,17 +811,14 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
    col_ind.resize(0);
    val.resize(0);
 
-   //cout << "A = " << endl;
-   //it->A.print_full();
-   //cout << "A_bar = " << endl;
-   //A_bar.print_full();
-   //cout << A_bar << endl;
-
    // start assigning C/F nodes
    // T[i] = 0  <- unassigned
    // T[i] = 1  <- C-point
    // T[i] = 2  <- F-point
    vector<unsigned> T(M,0);
+   vector<unsigned> Teqz; Teqz.reserve(M); // vector of indexes j where T[j] != 0.  
+   // This is used for a performance optimization.  strongly_influence* can 
+   // probably be optimized to use Teqz instead of just T, but that's a TODO
 
    // if salient, designate as C node
    for (unsigned i = 0; i < M; ++i) {
@@ -829,47 +826,41 @@ vector<unsigned> coarsen_AMG(const list<image_level>::iterator it,
          T[i] = 1;
          lambda[i] = 0;
       }
+      else {
+         Teqz.push_back(i);
+      }
    }
 
    // while any of the T[i] are zero
    // equivalently, while not all T[i] > 0
-   // TODO: this can probably be optimized, but we should make sure it works
-   // before we mess around with that
 
-   unsigned j, max_lambda;
-   //vector<unsigned> K;
-   while ( any_of(T.begin(), T.end(), 
-            [] (unsigned Ti) -> bool {return Ti == 0;}) ) {
+   vector<unsigned>::iterator Teqz_it;
 
-      max_lambda = *max_element(lambda.begin(), lambda.end());
-      for ( j = 0; j < M; ++j ) {
-         if ( T[j] == 0 && lambda[j] == max_lambda) break;
+   while ( Teqz.size() > 0 ) {
+
+      unsigned ml = 0;
+      for (auto it = Teqz.begin(); it != Teqz.end(); ++it) {
+         if ( lambda[*it] > ml ) {
+            Teqz_it = it;
+            ml = lambda[*it];
+         }
       }
 
-      //cout << "T = " << endl;
-      //print_vector(T);
+      unsigned jm = *Teqz_it;
+      T[jm] = 1;
+      Teqz.erase(Teqz_it);
+      lambda[jm] = 0;
 
-      //cout << "lambda = " << endl;
-      //print_vector(lambda);
- 
-      //cout << "j = " << j << endl;
-     
-      T[j] = 1;
-      lambda[j] = 0;
-
-      //vector<unsigned> K = strongly_influenced_by_j(A_bar, T, j);
-      vector<unsigned> K = strongly_influenced_by_j_trans(A_bar_trans, T, j);
-
-      //cout << "K = " << endl;
-      //print_vector(K);
-
-      //cout << "K (via A_bar_trans) = " << endl;
-      //print_vector(K);
+      vector<unsigned> K = strongly_influenced_by_j_trans(A_bar_trans, T, jm);
 
       vector<unsigned> H;
+      Teqz_it = Teqz.begin();
       for (auto k_it = K.begin(); k_it != K.end(); ++k_it) {
          
          T[*k_it] = 2; // nodes in K become F-points
+         Teqz_it = lower_bound(Teqz_it, Teqz.end(), *k_it); // this will always find the value
+         Teqz_it = Teqz.erase(Teqz_it);
+
          lambda[*k_it] = 0;
 
          H = strongly_influence_k(A_bar, T, *k_it);
@@ -1383,10 +1374,10 @@ int main(void) {
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/arrow_5", 1);
  
-   //img = load_image("../test_imgs/squares.png");
-   //set_params(params, 10., 5., 100., 0.1, 0.1, 0.15, 1, 1);
-   //U = image_seg(img, params);
-   //write_seg_images(img, U, "gen_imgs/squares", 1);
+   img = load_image("../test_imgs/squares.png");
+   set_params(params, 10., 5., 100., 0.1, 0.1, 0.15, 1, 1);
+   U = image_seg(img, params);
+   write_seg_images(img, U, "gen_imgs/squares", 1);
 
    //img = load_image("../test_imgs/E_25.png");
    //set_params(params, 10., 5., 100., 0.1, 0.1, 0.15, 1, 1);
@@ -1401,10 +1392,11 @@ int main(void) {
    // Checker Disk
    ///////////////
    // Inglis et al.'s parameters
-   set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1);
-   img = load_image("../test_imgs/checker_disk_60.png");
-   U = image_seg(img, params);
-   write_seg_images(img, U, "gen_imgs/checker_disk_60", 1);
+   //set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1);
+   //set_params(params, 20., 10., 10., 0.1, 0.1, 0.15, 5, 1); // a bit more contrast
+   //img = load_image("../test_imgs/checker_disk_60.png");
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/checker_disk_60", 1);
  
    //img = load_image("../test_imgs/checker_disk_120.png");
    //U = image_seg(img, params);
@@ -1452,9 +1444,9 @@ int main(void) {
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/peppers_100", 1);
 
-   //img = load_image("../test_imgs/peppers.jpg");
-   //U = image_seg(img, params);
-   //write_seg_images(img, U, "gen_imgs/peppers", 1);
+   img = load_image("../test_imgs/peppers.jpg");
+   U = image_seg(img, params);
+   write_seg_images(img, U, "gen_imgs/peppers", 1);
 
    return 0;
 }

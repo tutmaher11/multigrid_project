@@ -642,21 +642,6 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
    matrix_crs<double> P = build_interp(it->A, C, M, M_next);
    matrix_crs<double> P_trans = transpose(P);
 
-   //cout << "P = " << endl;
-   //cout << P << endl;
-   //P.print_full();
-
-   //vector<double> row_sums(P.m, 0.);
-   //double row_sums_sum = 0.;
-   //for (unsigned i = 0; i < P.m; ++i) {
-   //   for (unsigned jp = P.row_ptr[i]; jp < P.row_ptr[i+1]; ++jp) {
-   //      row_sums[i] += P.val[jp];
-   //      row_sums_sum += P.val[jp];
-   //   }
-   //   //cout << "row_sum[i] = " << setprecision(16) << row_sums[i] << endl;
-   //}
-   //cout << "row_sums_sum = " << row_sums_sum << endl;
-
    // build column-scaled interpolation matrix P
    matrix_crs<double> Ptil = build_scaled_interp(P);
    matrix_crs<double> Ptil_trans = transpose(Ptil);
@@ -671,7 +656,8 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
 
 
    // coarse-level coupling matrix
-   next(it)->A = P_trans*(it->A)*P;
+   next(it)->A = (it->A)*P;
+   next(it)->A = P_trans*(next(it)->A);
    //next(it)->A.clean();
    rescale_coarse_coupling(next(it)->A, it, l_next, params);
 
@@ -693,10 +679,6 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
    valarray<double> diagG = diag(next(it)->G);
    valarray<double> diagW = diag(next(it)->A);
 
-   //cout << "L = " << endl;
-   //cout << next(it)->L << endl;
-   //print_vector(diagL);
-
    next(it)->Gamma.resize(M_next,0.);
    double tmp = 0.;
    for (unsigned i = 0; i < M_next; ++i) {
@@ -711,19 +693,7 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
          params);
 
    // Interpolate U
-   //cout << "U = " << endl;
-   //U.print_full();
-   //cout << U << endl;
-
    U = P*U;
-
-   //cout << "P = " << endl;
-   //cout << P << endl;
-   //P.print_full();
-
-   //cout << "U = " << endl;
-   //U.print_full();
-   //cout << U << endl;
 
    // Sharpen overlapping segments
    for (unsigned ind = 0; ind < U.val.size(); ++ind) {
@@ -732,18 +702,9 @@ matrix_crs<double> image_vcycle(unsigned l, unsigned M,
       else continue;
    }
 
-   //cout << "U (post-sharpen) = " << endl;
-   //U.print_full();
-   //cout << U << endl;
-
    // We probably introduced some zeros into U via P*U and also the sharpening.
    U.clean();
    
-   //cout << "U (post-clean) = " << endl;
-   //U.print_full();
-   //cout << U << endl;
-
-
    return U;
 // }}}
 }
@@ -1012,7 +973,7 @@ matrix_crs<double> image_seg(const cv::Mat& img, seg_params& params) {
    }
 
    valarray<double> I = image_to_intensity(img, params);
-  
+
    // First Level stuff
    list<image_level> levels(1);
    build_first_level(I, params, levels.begin());
@@ -1023,7 +984,6 @@ matrix_crs<double> image_seg(const cv::Mat& img, seg_params& params) {
    matrix_crs<double> U = image_vcycle(l, M, levels, levels.begin(), params);
 
    // Assign pixels uniquely
-   //U.print_full();
    assign_uniquely(U);
 
    return U;
@@ -1397,11 +1357,12 @@ int main(void) {
    // Checker Disk
    ///////////////
    // Inglis et al.'s parameters
-   //set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1);
+   set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1);
    //set_params(params, 20., 10., 10., 0.1, 0.1, 0.15, 5, 1); // a bit more contrast
-   //img = load_image("../test_imgs/checker_disk_60.png");
-   //U = image_seg(img, params);
-   //write_seg_images(img, U, "gen_imgs/checker_disk_60", 1);
+   //set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1); // change theta to use max-row or row-sum
+   img = load_image("../test_imgs/checker_disk_60.png");
+   U = image_seg(img, params);
+   write_seg_images(img, U, "gen_imgs/checker_disk_60", 1);
  
    //img = load_image("../test_imgs/checker_disk_120.png");
    //U = image_seg(img, params);
@@ -1438,13 +1399,14 @@ int main(void) {
    // Peppers
    //////////
    set_params(params, 50., 4., 10., 0.10, 0.15, 0.15, 5, 1);
+   //set_params(params, 10., 10., 10., 0.1, 0.1, 0.15, 5, 1);
    //img = load_image("../test_imgs/peppers_25.jpg");
    //U = image_seg(img, params);
    //write_seg_images(img, U, "gen_imgs/peppers_25", 1);
 
-   img = load_image("../test_imgs/peppers_50.jpg");
-   U = image_seg(img, params);
-   write_seg_images(img, U, "gen_imgs/peppers_50", 1);
+   //img = load_image("../test_imgs/peppers_50.jpg");
+   //U = image_seg(img, params);
+   //write_seg_images(img, U, "gen_imgs/peppers_50", 1);
 
    //img = load_image("../test_imgs/peppers_100.jpg");
    //U = image_seg(img, params);

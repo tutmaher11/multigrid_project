@@ -26,6 +26,8 @@ using namespace std;
 
 #define _PRINT_FULL_PREC_ 4
 #define _PRINT_FULL_WIDTH_ 10
+//#define _PRINT_FULL_PREC_ 10
+//#define _PRINT_FULL_WIDTH_ 16
 
 #define _PRINT_VECTOR_PREC_ 10
 #define _PRINT_VECTOR_WIDTH_ 12

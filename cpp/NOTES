@@ -1,11 +1,13 @@
 
-
-
 TODO
 ====
-* Spurious segmentation for checkerd disk?
+* Spurious segmentation for checkered disk?
+  - Did the authors use the max off-diagonal row element instead of off-diagonal row sum method in coarsen_AMG?
 
-* Our code finds some boundary segments for the large peppers images.  This could just be a parameter issue.
+* Different segments between C++ and Julia implementations
+  - We think that this is due to peppers_*.jpg being a color image.  OpenCV and whatever Julia uses may convert the image to grayscale differently.  Making peppers_* grayscale beforehand, so C++ and Julia use exactly the same images, should fix this.
+
+* Our code finds some pepper boundary segments for the large peppers images.  This could just be a parameter issue.
 
 * It seems that we don't need to build all of L and G; we only need the 
   diagonal elements, which correspond to the row sums (excluding the diagonal)
